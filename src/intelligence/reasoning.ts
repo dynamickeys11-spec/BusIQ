@@ -1,30 +1,46 @@
-import type { EvidenceItem, ReasoningResult } from "./types";
+import type { EvidenceItem, ReasoningConclusion, ReasoningResult } from "./types";
+
+function supportedFact(item: EvidenceItem): ReasoningConclusion {
+  return {
+    type: "FACT",
+    statement: item.detail,
+    evidenceIds: [item.id],
+    support: "supported",
+  };
+}
+
+function localInference(evidence: EvidenceItem[]): ReasoningConclusion {
+  return {
+    type: "INFERENCE",
+    statement: "BUSIQ has produced a deterministic local execution result from the supplied request and available local capabilities.",
+    evidenceIds: evidence.filter(item => item.kind === "inferred").map(item => item.id),
+    support: "supported",
+  };
+}
 
 export function reasonFromEvidence(
   evidence: EvidenceItem[],
   verificationState: "passed" | "blocked",
   request: string,
 ): ReasoningResult {
-  const retrieved = evidence.filter(item => item.kind === "retrieved" || item.kind === "verified");
-  const inferred = evidence.filter(item => item.kind === "inferred");
-
   if (verificationState !== "passed") {
     return {
       state: "insufficient",
       conclusions: [],
-      limitations: ["The available evidence is insufficient for a supported factual conclusion."],
+      limitations: [
+        "The available evidence is insufficient for a supported factual conclusion.",
+        "BUSIQ will not convert missing or unverified information into a conclusion.",
+      ],
     };
   }
+
+  const retrieved = evidence.filter(item => item.kind === "retrieved" || item.kind === "verified");
+  const inferred = evidence.filter(item => item.kind === "inferred");
 
   if (retrieved.length > 0) {
     return {
       state: "ready",
-      conclusions: retrieved.map(item => ({
-        type: "FACT" as const,
-        statement: item.detail,
-        evidenceIds: [item.id],
-        support: "supported" as const,
-      })),
+      conclusions: retrieved.map(supportedFact),
       limitations: inferred.length
         ? ["Some available material is inferred rather than directly retrieved or verified."]
         : [],
@@ -34,13 +50,10 @@ export function reasonFromEvidence(
   if (inferred.length > 0) {
     return {
       state: "ready",
-      conclusions: [{
-        type: "INFERENCE",
-        statement: inferred[0].detail,
-        evidenceIds: inferred.map(item => item.id),
-        support: "supported",
-      }],
-      limitations: ["This conclusion is derived from BUSIQ's local execution structure, not external business facts."],
+      conclusions: [localInference(inferred)],
+      limitations: [
+        "This is an inference about BUSIQ's local execution, not a business or external-world fact.",
+      ],
     };
   }
 
