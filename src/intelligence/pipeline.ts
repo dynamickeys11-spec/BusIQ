@@ -30,7 +30,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       status: "needs_clarification",
       execution: [],
       evidence: initialEvidence,
-      verification: verifyEvidence(initialEvidence, researchPlan, ambiguity.length, false),
+      verification: verifyEvidence(initialEvidence, researchPlan, ambiguity.length, false, normalized),
       reasoning: reasonFromEvidence(initialEvidence, "blocked", normalized),
       answer: {
         type: "clarification",
@@ -48,7 +48,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       status: "needs_connection",
       execution: [],
       evidence: initialEvidence,
-      verification: verifyEvidence(initialEvidence, researchPlan, 0, false),
+      verification: verifyEvidence(initialEvidence, researchPlan, 0, false, normalized),
       reasoning: reasonFromEvidence(initialEvidence, "blocked", normalized),
       answer: {
         type: "blocked",
@@ -78,7 +78,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
   const allEvidence = [...initialEvidence, ...executionEvidence];
   const executionBlocked = execution.filter(result => result.state === "blocked");
   const executionSucceeded = execution.length > 0 && executionBlocked.length === 0;
-  const verification = verifyEvidence(allEvidence, researchPlan, 0, executionSucceeded);
+  const verification = verifyEvidence(allEvidence, researchPlan, 0, executionSucceeded, normalized);
   const reasoning = reasonFromEvidence(allEvidence, verification.state, normalized);
 
   if (executionBlocked.length) {
