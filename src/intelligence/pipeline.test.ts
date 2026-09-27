@@ -8,6 +8,7 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.status).toBe("needs_connection");
     expect(result.researchPlan.some(step => step.sourceClass === "business-data" && step.status === "blocked" && step.evidenceRequired)).toBe(true);
     expect(result.verification.state).toBe("blocked");
+    expect(result.reasoning.state).toBe("insufficient");
     expect(result.execution).toHaveLength(0);
   });
 
@@ -28,6 +29,9 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.verification.missingEvidence).toHaveLength(0);
     expect(result.execution.some(item => item.toolId === "local-plan-builder" && item.state === "success")).toBe(true);
     expect(result.answer.detail).toContain("no invented business facts");
+    expect(result.reasoning.state).toBe("ready");
+    expect(result.reasoning.conclusions.some(item => item.type === "INFERENCE")).toBe(true);
+    expect(result.reasoning.conclusions.every(item => item.support === "supported")).toBe(true);
   });
 
   it("executes a 90-day plan locally while leaving factual research disconnected", () => {
