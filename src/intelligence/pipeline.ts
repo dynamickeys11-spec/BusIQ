@@ -71,7 +71,8 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
     trace: ["Normalize request", "Resolve intent", "Check material ambiguity", "Resolve capabilities", "Route to suitable tools", "Execute available tools", "Stop on missing executor"],
   };
 
-  const plan = execution.find(result => result.toolId === "local-plan-builder" && result.state === "success")?.output;
+  const planResult = execution.find(result => result.toolId === "local-plan-builder");
+  const plan = planResult?.state === "success" ? planResult.output : undefined;
   return {
     ...base, status: "ready", execution: executionRecords, evidence: allEvidence,
     verification: { ...verification, state: "passed" },
