@@ -49,11 +49,12 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       inputs: { request: normalized },
     }));
 
-  const executionRecords = execution.map(result => ({
-    toolId: result.toolId,
-    state: result.state,
-    ...(result.state === "success" ? { output: result.output } : { reason: result.reason }),
-  }));
+  const executionRecords = execution.map(result => {
+    if (result.state === "success") {
+      return { toolId: result.toolId, state: result.state, output: result.output };
+    }
+    return { toolId: result.toolId, state: result.state, reason: result.reason };
+  });
   const executionEvidence = execution.flatMap(result => result.state === "success" ? result.evidence : []);
   const allEvidence = [...initialEvidence, ...executionEvidence];
   const executionBlocked = execution.filter(result => result.state === "blocked");
