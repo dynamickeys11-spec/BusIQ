@@ -1,6 +1,6 @@
-import { resolveIntent, type ResolvedIntent } from "../bie/intent";
-import { getTool, type ToolDescriptor } from "./tools";
+import type { ResolvedIntent } from "../bie/intent";
 import type { CapabilityRequirement } from "./types";
+import { getTool, type ToolDescriptor } from "./tools";
 
 export type RoutingDecision = {
   capabilityId: string;
@@ -55,11 +55,6 @@ export function routeCapabilities(
         ...(intentOrCapabilities.needsBusinessData ? ["business-data-retrieval"] : []),
         ...(intentOrCapabilities.needsExternalResearch ? ["external-research"] : []),
       ];
+
   return [...new Set(capabilities)].map(routeOne);
 }
-
-export function routeCapabilityRequirements(capabilities: CapabilityRequirement[]): RoutingDecision[] {
-  return routeCapabilities(capabilities);
-}
-
-export { resolveIntent };
