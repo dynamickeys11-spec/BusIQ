@@ -8,4 +8,16 @@ const rules:Array<{kind:IntentKind;label:string;patterns:RegExp[];capabilities:s
 {kind:"retrieve",label:"Retrieve business information",patterns:[/\bshow\b/i,/\bfind\b/i,/\blist\b/i,/\bhow much\b/i,/\bwhat is\b/i],capabilities:["business-data-retrieval"]},
 {kind:"explain",label:"Explain something",patterns:[/\bexplain\b/i,/\bteach\b/i,/\bhelp me understand\b/i],capabilities:["explanation"]},
 {kind:"monitor",label:"Monitor a business condition",patterns:[/\bmonitor\b/i,/\btrack\b/i,/\bwatch\b/i,/\balert\b/i],capabilities:["monitoring","business-context"]}];
-export function resolveIntent(input:string):ResolvedIntent{const request=input.trim().replace(/\s+/g," ");if(!request)return{kind:"unknown",label:"No request yet",normalizedRequest:"",requiredCapabilities:[],needsBusinessData:false,needsExternalResearch:false,ambiguity:"none"};const matched=rules.find(r=>r.patterns.some(p=>p.test(request)));const external=/\bmarket\b|\bcompetitor\b|\bindustry\b|\bregulat/i.test(request);const business=/\bsales\b|\brevenue\b|\bcustomer\b|\bprofit\b|\bcash\b|\binventory\b|\bsupplier\b|\bexpense\b|\bbusiness\b/i.test(request);if(!matched)return{kind:"unknown",label:"Understand the request before choosing a capability",normalizedRequest:request,requiredCapabilities:["intent-resolution"],needsBusinessData:business,needsExternalResearch:external,ambiguity:"none"};return{kind:matched.kind,label:matched.label,normalizedRequest:request,requiredCapabilities:matched.capabilities,needsBusinessData:business,needsExternalResearch:external,ambiguity:"none"};}
+const currentBusiness=/\b(my|our|this|current|today|yesterday|last|this week|this month|actual|in my business|for my business)\b/i;
+const businessObjects=/\b(sales|revenue|customer|profit|cash|inventory|supplier|expense|orders?|products?)\b/i;
+const externalObjects=/\b(market|competitor|industry|regulat|benchmark|trend)\b/i;
+export function resolveIntent(input:string):ResolvedIntent{
+  const request=input.trim().replace(/\s+/g," ");
+  if(!request)return{kind:"unknown",label:"No request yet",normalizedRequest:"",requiredCapabilities:[],needsBusinessData:false,needsExternalResearch:false,ambiguity:"none"};
+  const matched=rules.find(r=>r.patterns.some(p=>p.test(request)));
+  const businessAction=/\b(show|find|list|analy[sz]|investigat|compare|monitor|track|why|how is|how are|check|review)\b/i.test(request);
+  const needsBusinessData=currentBusiness.test(request)&&(businessObjects.test(request)||businessAction);
+  const needsExternalResearch=externalObjects.test(request)&&(/\b(current|latest|research|find|compare|benchmark|market|competitor|industry|regulat|trend)\b/i.test(request));
+  if(!matched)return{kind:"unknown",label:"Understand the request before choosing a capability",normalizedRequest:request,requiredCapabilities:["intent-resolution"],needsBusinessData,needsExternalResearch,ambiguity:"none"};
+  return{kind:matched.kind,label:matched.label,normalizedRequest:request,requiredCapabilities:matched.capabilities,needsBusinessData,needsExternalResearch,ambiguity:"none"};
+}
