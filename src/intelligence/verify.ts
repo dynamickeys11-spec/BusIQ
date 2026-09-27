@@ -1,5 +1,16 @@
 import type { EvidenceItem, ResearchStep } from "./types";
 
+function evidenceQualityIssues(evidence: EvidenceItem[]): string[] {
+  const issues: string[] = [];
+  for (const item of evidence.filter(item => item.kind === "retrieved" || item.kind === "verified")) {
+    if (item.authority === "unknown" || !item.authority) issues.push(`Evidence ${item.id} has unknown source authority.`);
+    if (item.freshness === "unknown" || !item.freshness) issues.push(`Evidence ${item.id} has unknown freshness.`);
+    if (item.verification !== "verified") issues.push(`Evidence ${item.id} is not verified.`);
+    if (item.relevance === "unknown") issues.push(`Evidence ${item.id} has unknown relevance.`);
+  }
+  return issues;
+}
+
 export function verifyEvidence(
   evidence: EvidenceItem[],
   researchPlan: ResearchStep[],
@@ -36,11 +47,20 @@ export function verifyEvidence(
   }
 
   const retrievedEvidence = evidence.filter(item => item.kind === "retrieved" || item.kind === "verified");
+  const qualityIssues = evidenceQualityIssues(retrievedEvidence);
   if (requiredEvidenceSteps.length > 0 && retrievedEvidence.length === 0) {
     return {
       state: "blocked" as const,
       checks,
       missingEvidence: ["No retrieved or verified evidence is available for the required factual step."],
+    };
+  }
+
+  if (qualityIssues.length > 0) {
+    return {
+      state: "blocked" as const,
+      checks,
+      missingEvidence: qualityIssues,
     };
   }
 
