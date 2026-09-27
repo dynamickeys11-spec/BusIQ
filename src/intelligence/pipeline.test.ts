@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { runIntelligencePipeline } from "./pipeline";
+import { reasonFromEvidence } from "./reasoning";
 
 describe("BUSIQ intelligence pipeline", () => {
   it("blocks business questions that require connected business data", () => {
@@ -61,6 +62,32 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.reasoning.state).toBe("insufficient");
     expect(result.reasoning.conclusions).toHaveLength(0);
     expect(result.reasoning.limitations.join(" ")).toContain("missing or unverified information");
+  });
+
+  it("does not promote unverified retrieved material to fact", () => {
+    const result = reasonFromEvidence(
+      [{ id: "source-1", kind: "retrieved", label: "Source", detail: "Sales changed.", source: "Connector", verification: "unverified" }],
+      "passed",
+      "Why did sales change?",
+    );
+    expect(result.state).toBe("insufficient");
+    expect(result.conclusions).toHaveLength(0);
+    expect(result.limitations.join(" ")).toContain("unverified retrieved material");
+  });
+
+  it("allows verified retrieved evidence to produce an evidence-linked fact", () => {
+    const result = reasonFromEvidence(
+      [{ id: "source-1", kind: "retrieved", label: "Source", detail: "Sales fell 8%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified" }],
+      "passed",
+      "Why did sales change?",
+    );
+    expect(result.state).toBe("ready");
+    expect(result.conclusions).toEqual([{
+      type: "FACT",
+      statement: "Sales fell 8%.",
+      evidenceIds: ["source-1"],
+      support: "supported",
+    }]);
   });
 
   it("asks for clarification for an unknown request", () => {
