@@ -124,6 +124,32 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.limitations.join(" ")).toContain("Conflicting evidence");
   });
 
+  it("does not treat different scopes as conflicting evidence", () => {
+    const result = reasonFromEvidence(
+      [
+        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", scope: "Online", verification: "verified" },
+        { id: "source-2", kind: "retrieved", label: "Sales", detail: "Sales decreased 3%.", source: "Connector", scope: "Retail", verification: "verified" },
+      ],
+      "passed",
+      "How did sales change?",
+    );
+    expect(result.state).toBe("ready");
+    expect(result.conclusions.some(item => item.type === "FINDING")).toBe(true);
+  });
+
+  it("does not treat different evidence dates as conflicting", () => {
+    const result = reasonFromEvidence(
+      [
+        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", evidenceDate: "2026-09-26", verification: "verified" },
+        { id: "source-2", kind: "retrieved", label: "Sales", detail: "Sales decreased 3%.", source: "Connector", evidenceDate: "2026-09-27", verification: "verified" },
+      ],
+      "passed",
+      "How did sales change?",
+    );
+    expect(result.state).toBe("ready");
+    expect(result.conclusions.some(item => item.type === "FINDING")).toBe(true);
+  });
+
   it("asks for clarification for an unknown request", () => {
     const result = runIntelligencePipeline("Tell me something useful");
     expect(result.status).toBe("needs_clarification");
