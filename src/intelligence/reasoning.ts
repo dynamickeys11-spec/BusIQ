@@ -22,6 +22,29 @@ function hasVerifiedProvenance(item: EvidenceItem): boolean {
   return item.kind === "verified" || item.verification === "verified";
 }
 
+function normalizeDetail(detail: string): string {
+  return detail.trim().toLowerCase().replace(/\\s+/g, " ");
+}
+
+function detectConflicts(evidence: EvidenceItem[]): string[] {
+  const conflicts: string[] = [];
+  for (let i = 0; i < evidence.length; i += 1) {
+    for (let j = i + 1; j < evidence.length; j += 1) {
+      const left = normalizeDetail(evidence[i].detail);
+      const right = normalizeDetail(evidence[j].detail);
+      if (
+        (left.includes("increased") && right.includes("decreased")) ||
+        (left.includes("decreased") && right.includes("increased")) ||
+        (left.includes("up") && right.includes("down")) ||
+        (left.includes("down") && right.includes("up"))
+      ) {
+        conflicts.push(`Potentially conflicting evidence: ${evidence[i].id} and ${evidence[j].id}.`);
+      }
+    }
+  }
+  return conflicts;
+}
+
 function multiEvidenceFinding(evidence: EvidenceItem[], request: string): ReasoningConclusion {
   return {
     type: "FINDING",
@@ -64,6 +87,17 @@ export function reasonFromEvidence(
   }
 
   if (verifiedRetrieved.length > 1) {
+    const conflicts = detectConflicts(verifiedRetrieved);
+    if (conflicts.length > 0) {
+      return {
+        state: "insufficient",
+        conclusions: verifiedRetrieved.map(supportedFact),
+        limitations: [
+          ...conflicts,
+          "Conflicting evidence must be reconciled before BUSIQ derives a combined finding or recommendation.",
+        ],
+      };
+    }
     return {
       state: "ready",
       conclusions: [
