@@ -13,6 +13,7 @@ export type ResearchStep = {
   id: string; purpose: string;
   sourceClass: "business-data" | "external-research" | "specialist-tool" | "local-context";
   status: "required" | "available" | "blocked" | "not-required";
+  evidenceRequired: boolean;
 };
 export type RoutingDecision = {
   capabilityId: string; selectedToolId?: string;
