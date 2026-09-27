@@ -14,7 +14,7 @@ export function detectAmbiguity(request: string, intent: ResolvedIntent): Ambigu
   if (words.length < 3 && intent.kind !== "explain") {
     return [{ field: "goal", reason: "The request is too short to determine the intended outcome reliably.", question: "What exactly would you like BUSIQ to do?" }];
   }
-  if ((intent.kind === "compare" || intent.kind === "retrieve") && !/\b(sales|revenue|profit|customer|product|inventory|supplier|expense|cash|price|business|plan|option|company|market|competitor)\b/i.test(request)) {
+  if ((intent.kind === "compare" || intent.kind === "retrieve") && !/\b(sales|revenue|profit|customers?|products?|inventory|suppliers?|expenses?|cash|price|business|plan|option|company|market|competitors?)\b/i.test(request)) {
     return [{ field: "subject", reason: "The request names an action but not the subject to act on.", question: "What should I compare or retrieve?" }];
   }
   return [];
