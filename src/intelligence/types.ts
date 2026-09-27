@@ -25,6 +25,19 @@ export type ExecutionRecord = {
   reason?: string;
   output?: unknown;
 };
+export type ReasoningType = "FACT" | "FINDING" | "INFERENCE" | "RECOMMENDATION";
+export type ReasoningConclusion = {
+  type: ReasoningType;
+  statement: string;
+  evidenceIds: string[];
+  support: "supported" | "insufficient";
+};
+export type ReasoningResult = {
+  state: "ready" | "insufficient";
+  conclusions: ReasoningConclusion[];
+  limitations: string[];
+};
+
 export type IntelligencePipelineResult = {
   request: string; status: PipelineStatus;
   intent: ReturnType<typeof import("../bie/intent").resolveIntent>;
@@ -33,6 +46,7 @@ export type IntelligencePipelineResult = {
   execution: ExecutionRecord[];
   evidence: EvidenceItem[];
   verification: { state: "not-run" | "passed" | "blocked"; checks: string[]; missingEvidence: string[]; };
+  reasoning: ReasoningResult;
   answer: { type: "clarification" | "execution-plan" | "blocked"; headline: string; detail: string; nextAction: string; };
   trace: string[];
 };
