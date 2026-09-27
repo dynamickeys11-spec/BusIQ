@@ -26,19 +26,29 @@ function normalizeDetail(detail: string): string {
   return detail.trim().toLowerCase().replace(/\\s+/g, " ");
 }
 
+function hasComparableScope(left: EvidenceItem, right: EvidenceItem): boolean {
+  if (left.label.trim().toLowerCase() !== right.label.trim().toLowerCase()) return false;
+  if (left.scope && right.scope && left.scope !== right.scope) return false;
+  if (left.evidenceDate && right.evidenceDate && left.evidenceDate !== right.evidenceDate) return false;
+  return true;
+}
+
+function direction(detail: string): "up" | "down" | "neutral" {
+  const value = normalizeDetail(detail);
+  if (/\\b(increased|increase|up|rose|rising|grew|growth)\\b/.test(value)) return "up";
+  if (/\\b(decreased|decrease|down|fell|falling|declined|decline|dropped)\\b/.test(value)) return "down";
+  return "neutral";
+}
+
 function detectConflicts(evidence: EvidenceItem[]): string[] {
   const conflicts: string[] = [];
   for (let i = 0; i < evidence.length; i += 1) {
     for (let j = i + 1; j < evidence.length; j += 1) {
-      const left = normalizeDetail(evidence[i].detail);
-      const right = normalizeDetail(evidence[j].detail);
-      if (
-        (left.includes("increased") && right.includes("decreased")) ||
-        (left.includes("decreased") && right.includes("increased")) ||
-        (left.includes("up") && right.includes("down")) ||
-        (left.includes("down") && right.includes("up"))
-      ) {
-        conflicts.push(`Potentially conflicting evidence: ${evidence[i].id} and ${evidence[j].id}.`);
+      if (!hasComparableScope(evidence[i], evidence[j])) continue;
+      const left = direction(evidence[i].detail);
+      const right = direction(evidence[j].detail);
+      if (left !== "neutral" && right !== "neutral" && left !== right) {
+        conflicts.push(`Conflicting evidence: ${evidence[i].id} and ${evidence[j].id} report opposing directions for the same comparable subject.`);
       }
     }
   }
