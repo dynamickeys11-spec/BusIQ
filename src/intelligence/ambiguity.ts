@@ -4,7 +4,7 @@ import type { ResolvedIntent } from "../bie/intent";
 export function detectAmbiguity(request: string, intent: ResolvedIntent): AmbiguityIssue[] {
   const words = request.trim().split(/\s+/).filter(Boolean);
   if (!request.trim()) return [{ field: "goal", reason: "No request was supplied.", question: "What would you like to understand or accomplish?" }];
-  if (intent.kind === "unknown") {
+  if (intent.kind === "unknown" && !intent.needsExternalResearch && !intent.needsBusinessData) {
     return [{
       field: "goal",
       reason: "BUSIQ cannot reliably determine the requested outcome from the wording provided.",
