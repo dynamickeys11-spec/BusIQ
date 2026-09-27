@@ -56,6 +56,13 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.verification.state).toBe("blocked");
   });
 
+  it("does not produce factual conclusions when evidence is blocked", () => {
+    const result = runIntelligencePipeline("Why are my sales down?");
+    expect(result.reasoning.state).toBe("insufficient");
+    expect(result.reasoning.conclusions).toHaveLength(0);
+    expect(result.reasoning.limitations.join(" ")).toContain("missing or unverified information");
+  });
+
   it("asks for clarification for an unknown request", () => {
     const result = runIntelligencePipeline("Tell me something useful");
     expect(result.status).toBe("needs_clarification");
