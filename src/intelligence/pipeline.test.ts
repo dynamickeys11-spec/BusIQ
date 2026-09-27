@@ -90,6 +90,25 @@ describe("BUSIQ intelligence pipeline", () => {
     }]);
   });
 
+  it("derives a finding only from multiple verified facts", () => {
+    const result = reasonFromEvidence(
+      [
+        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales fell 8%.", source: "Connector", verification: "verified" },
+        { id: "source-2", kind: "retrieved", label: "Orders", detail: "Orders fell 13%.", source: "Connector", verification: "verified" },
+      ],
+      "passed",
+      "Why did sales change?",
+    );
+    expect(result.state).toBe("ready");
+    const finding = result.conclusions.find(item => item.type === "FINDING");
+    expect(finding).toEqual({
+      type: "FINDING",
+      statement: "The verified evidence set contains 2 directly supported facts relevant to the request: Why did sales change?",
+      evidenceIds: ["source-1", "source-2"],
+      support: "supported",
+    });
+  });
+
   it("asks for clarification for an unknown request", () => {
     const result = runIntelligencePipeline("Tell me something useful");
     expect(result.status).toBe("needs_clarification");
