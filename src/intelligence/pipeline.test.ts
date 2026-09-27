@@ -6,7 +6,8 @@ describe("BUSIQ intelligence pipeline", () => {
     const result = runIntelligencePipeline("Why are my sales down?");
     expect(result.intent.kind).toBe("investigate");
     expect(result.status).toBe("needs_connection");
-    expect(result.researchPlan.some(step => step.sourceClass === "business-data" && step.status === "blocked")).toBe(true);
+    expect(result.researchPlan.some(step => step.sourceClass === "business-data" && step.status === "blocked" && step.evidenceRequired)).toBe(true);
+    expect(result.verification.state).toBe("blocked");
     expect(result.execution).toHaveLength(0);
   });
 
@@ -14,7 +15,8 @@ describe("BUSIQ intelligence pipeline", () => {
     const result = runIntelligencePipeline("What are the latest market trends?");
     expect(result.intent.needsExternalResearch).toBe(true);
     expect(result.status).toBe("needs_connection");
-    expect(result.researchPlan.some(step => step.sourceClass === "external-research" && step.status === "blocked")).toBe(true);
+    expect(result.researchPlan.some(step => step.sourceClass === "external-research" && step.status === "blocked" && step.evidenceRequired)).toBe(true);
+    expect(result.verification.state).toBe("blocked");
     expect(result.execution).toHaveLength(0);
   });
 
@@ -22,6 +24,8 @@ describe("BUSIQ intelligence pipeline", () => {
     const result = runIntelligencePipeline("Create a business plan");
     expect(result.intent.kind).toBe("plan");
     expect(result.status).toBe("ready");
+    expect(result.verification.state).toBe("passed");
+    expect(result.verification.missingEvidence).toHaveLength(0);
     expect(result.execution.some(item => item.toolId === "local-plan-builder" && item.state === "success")).toBe(true);
     expect(result.answer.detail).toContain("no invented business facts");
   });
@@ -30,7 +34,8 @@ describe("BUSIQ intelligence pipeline", () => {
     const result = runIntelligencePipeline("Build a 90-day growth plan");
     expect(result.intent.kind).toBe("plan");
     expect(result.status).toBe("ready");
-    expect(result.researchPlan.some(step => step.id === "no-research" && step.status === "not-required")).toBe(true);
+    expect(result.verification.state).toBe("passed");
+    expect(result.researchPlan.some(step => step.id === "no-research" && step.status === "not-required" && !step.evidenceRequired)).toBe(true);
   });
 
   it("blocks retrieval of current business expenses", () => {
@@ -44,6 +49,7 @@ describe("BUSIQ intelligence pipeline", () => {
     const result = runIntelligencePipeline("Compare");
     expect(result.status).toBe("needs_clarification");
     expect(result.ambiguity[0]?.field).toBe("goal");
+    expect(result.verification.state).toBe("blocked");
   });
 
   it("asks for clarification for an unknown request", () => {
