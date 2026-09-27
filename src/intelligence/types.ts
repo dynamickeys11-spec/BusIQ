@@ -14,10 +14,15 @@ export type ResearchStep = {
   sourceClass: "business-data" | "external-research" | "specialist-tool" | "local-context";
   status: "required" | "available" | "blocked" | "not-required";
 };
+export type RoutingDecision = {
+  capabilityId: string; selectedToolId?: string;
+  state: "selected" | "blocked"; reason: string; requiredInputs: string[];
+};
 export type IntelligencePipelineResult = {
   request: string; status: PipelineStatus;
   intent: ReturnType<typeof import("../bie/intent").resolveIntent>;
   ambiguity: AmbiguityIssue[]; capabilities: CapabilityRequirement[]; researchPlan: ResearchStep[];
+  routing: RoutingDecision[];
   evidence: EvidenceItem[];
   verification: { state: "not-run" | "passed" | "blocked"; checks: string[]; missingEvidence: string[]; };
   answer: { type: "clarification" | "execution-plan" | "blocked"; headline: string; detail: string; nextAction: string; };
