@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { runIntelligencePipeline } from "./pipeline";
 import { reasonFromEvidence } from "./reasoning";
+import { verifyEvidence } from "./verify";
 
 describe("BUSIQ intelligence pipeline", () => {
   it("blocks business questions that require connected business data", () => {
@@ -151,12 +152,14 @@ describe("BUSIQ intelligence pipeline", () => {
   });
 
   it("blocks factual verification when evidence quality metadata is incomplete", () => {
-    const result = reasonFromEvidence(
+    const result = verifyEvidence(
       [{ id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales fell 8%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified" }],
-      "passed",
-      "Why did sales change?",
+      [{ id: "business-data", purpose: "Retrieve business data.", sourceClass: "business-data", status: "available", evidenceRequired: true }],
+      0,
+      true,
     );
-    expect(result.state).toBe("ready");
+    expect(result.state).toBe("blocked");
+    expect(result.missingEvidence.join(" ")).toContain("unknown relevance");
   });
 
   it("asks for clarification for an unknown request", () => {
