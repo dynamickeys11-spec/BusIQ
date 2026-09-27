@@ -3,13 +3,7 @@ import type { CapabilityRequirement } from "./types";
 const localCapabilities = new Set([
   "intent-resolution",
   "business-context",
-  "business-analysis",
-  "comparison",
-  "evidence-review",
   "planning",
-  "content-generation",
-  "explanation",
-  "monitoring",
 ]);
 
 const capabilityNames: Record<string, string> = {
