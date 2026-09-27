@@ -18,5 +18,7 @@ jobs:
         run: npm install
       - name: Type check
         run: npm run check
+      - name: Intelligence tests
+        run: npm test
       - name: Production build
         run: npm run build
