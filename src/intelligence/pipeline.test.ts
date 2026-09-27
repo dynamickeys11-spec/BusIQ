@@ -109,6 +109,21 @@ describe("BUSIQ intelligence pipeline", () => {
     });
   });
 
+  it("blocks combined findings when verified evidence conflicts", () => {
+    const result = reasonFromEvidence(
+      [
+        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", verification: "verified" },
+        { id: "source-2", kind: "retrieved", label: "Sales", detail: "Sales decreased 3%.", source: "Connector", verification: "verified" },
+      ],
+      "passed",
+      "How did sales change?",
+    );
+    expect(result.state).toBe("insufficient");
+    expect(result.conclusions.every(item => item.type === "FACT")).toBe(true);
+    expect(result.conclusions.some(item => item.type === "FINDING")).toBe(false);
+    expect(result.limitations.join(" ")).toContain("Conflicting evidence");
+  });
+
   it("asks for clarification for an unknown request", () => {
     const result = runIntelligencePipeline("Tell me something useful");
     expect(result.status).toBe("needs_clarification");
