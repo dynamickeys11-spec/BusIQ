@@ -3,7 +3,7 @@ export type EvidenceKind = "user" | "retrieved" | "verified" | "inferred";
 export type CapabilityStatus = "available" | "unavailable";
 
 export type EvidenceItem = {
-  id: string; kind: EvidenceKind; label: string; detail: string; source: string; authority?: "user" | "connected-source" | "specialist-tool" | "unknown"; freshness?: "current" | "dated" | "unknown"; verification?: "unverified" | "verified";
+  id: string; kind: EvidenceKind; label: string; detail: string; source: string; authority?: "user" | "connected-source" | "specialist-tool" | "unknown"; freshness?: "current" | "dated" | "unknown"; verification?: "unverified" | "verified"; evidenceDate?: string; scope?: string;
 };
 export type AmbiguityIssue = {
   field: "subject" | "time" | "scope" | "goal"; reason: string; question: string;
