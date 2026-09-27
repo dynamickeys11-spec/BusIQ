@@ -29,7 +29,7 @@ export default function App(){
    if(!result.request)return;
    setPipeline(result);
    if(result.status!=="needs_clarification"){
-     setWork(c=>[{id:crypto.randomUUID(),request:result.request,intent:result.intent,createdAt:new Date().toISOString(),status:"active"},...c].slice(0,20));
+     setWork(c=>[{id:crypto.randomUUID(),request:result.request,intent:result.intent,createdAt:new Date().toISOString(),status:"active" as const},...c].slice(0,20));
    }
    setRequest("");
    setActive("Workspace");
