@@ -6,6 +6,7 @@ import { executeTool } from "./execution";
 import { routeCapabilities } from "./router";
 import type { IntelligencePipelineResult } from "./types";
 import { verifyEvidence } from "./verify";
+import { reasonFromEvidence } from "./reasoning";
 
 export function runIntelligencePipeline(request: string): IntelligencePipelineResult {
   const normalized = request.trim().replace(/\s+/g, " ");
@@ -30,6 +31,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       execution: [],
       evidence: initialEvidence,
       verification: verifyEvidence(initialEvidence, researchPlan, ambiguity.length, false),
+      reasoning: reasonFromEvidence(initialEvidence, "blocked", normalized),
       answer: {
         type: "clarification",
         headline: ambiguity[0].question,
@@ -47,6 +49,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       execution: [],
       evidence: initialEvidence,
       verification: verifyEvidence(initialEvidence, researchPlan, 0, false),
+      reasoning: reasonFromEvidence(initialEvidence, "blocked", normalized),
       answer: {
         type: "blocked",
         headline: "The request is understood, but the required execution path is not connected yet.",
@@ -76,6 +79,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
   const executionBlocked = execution.filter(result => result.state === "blocked");
   const executionSucceeded = execution.length > 0 && executionBlocked.length === 0;
   const verification = verifyEvidence(allEvidence, researchPlan, 0, executionSucceeded);
+  const reasoning = reasonFromEvidence(allEvidence, verification.state, normalized);
 
   if (executionBlocked.length) {
     return {
@@ -84,6 +88,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       execution: executionRecords,
       evidence: allEvidence,
       verification,
+      reasoning,
       answer: {
         type: "blocked",
         headline: "The request is understood, but execution stopped safely.",
@@ -102,6 +107,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
     execution: executionRecords,
     evidence: allEvidence,
     verification,
+    reasoning,
     answer: {
       type: "execution-plan",
       headline: plan ? "BUSIQ created a real local plan structure." : "The request was resolved and executed through the available local capabilities.",
