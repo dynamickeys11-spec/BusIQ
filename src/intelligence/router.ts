@@ -1,5 +1,6 @@
-import type { ResolvedIntent } from "../bie/intent";
+import { resolveIntent, type ResolvedIntent } from "../bie/intent";
 import { getTool, type ToolDescriptor } from "./tools";
+import type { CapabilityRequirement } from "./types";
 
 export type RoutingDecision = {
   capabilityId: string;
@@ -16,32 +17,49 @@ const capabilityToolMap: Record<string, string[]> = {
   "external-research": ["external-research-connector"],
 };
 
-export function routeCapabilities(intent: ResolvedIntent): RoutingDecision[] {
-  return intent.requiredCapabilities.map(capabilityId => {
-    const candidates = capabilityToolMap[capabilityId] ?? [];
-    const available = candidates
-      .map(id => getTool(id))
-      .filter((tool): tool is ToolDescriptor => Boolean(tool))
-      .find(tool => tool.availability === "available");
+function routeOne(capabilityId: string): RoutingDecision {
+  const candidates = capabilityToolMap[capabilityId] ?? [];
+  const available = candidates
+    .map(id => getTool(id))
+    .filter((tool): tool is ToolDescriptor => Boolean(tool))
+    .find(tool => tool.availability === "available");
 
-    if (available) {
-      return {
-        capabilityId,
-        selectedToolId: available.id,
-        state: "selected" as const,
-        reason: "A suitable available tool satisfies this capability.",
-        requiredInputs: available.requiredInputs,
-      };
-    }
-
-    const first = candidates[0] ? getTool(candidates[0]) : undefined;
+  if (available) {
     return {
       capabilityId,
-      state: "blocked" as const,
-      reason: first
-        ? `No available tool can currently satisfy this capability: ${first.label} is not connected.`
-        : "No tool is registered for this capability.",
-      requiredInputs: first?.requiredInputs ?? [],
+      selectedToolId: available.id,
+      state: "selected",
+      reason: "A suitable available tool satisfies this capability.",
+      requiredInputs: available.requiredInputs,
     };
-  });
+  }
+
+  const first = candidates[0] ? getTool(candidates[0]) : undefined;
+  return {
+    capabilityId,
+    state: "blocked",
+    reason: first
+      ? `No available tool can currently satisfy this capability: ${first.label} is not connected.`
+      : "No tool is registered for this capability.",
+    requiredInputs: first?.requiredInputs ?? [],
+  };
 }
+
+export function routeCapabilities(
+  intentOrCapabilities: ResolvedIntent | CapabilityRequirement[],
+): RoutingDecision[] {
+  const capabilities = Array.isArray(intentOrCapabilities)
+    ? intentOrCapabilities.map(item => item.id)
+    : [
+        ...intentOrCapabilities.requiredCapabilities,
+        ...(intentOrCapabilities.needsBusinessData ? ["business-data-retrieval"] : []),
+        ...(intentOrCapabilities.needsExternalResearch ? ["external-research"] : []),
+      ];
+  return [...new Set(capabilities)].map(routeOne);
+}
+
+export function routeCapabilityRequirements(capabilities: CapabilityRequirement[]): RoutingDecision[] {
+  return routeCapabilities(capabilities);
+}
+
+export { resolveIntent };
