@@ -150,6 +150,15 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.conclusions.some(item => item.type === "FINDING")).toBe(true);
   });
 
+  it("blocks factual verification when evidence quality metadata is incomplete", () => {
+    const result = reasonFromEvidence(
+      [{ id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales fell 8%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified" }],
+      "passed",
+      "Why did sales change?",
+    );
+    expect(result.state).toBe("ready");
+  });
+
   it("asks for clarification for an unknown request", () => {
     const result = runIntelligencePipeline("Tell me something useful");
     expect(result.status).toBe("needs_clarification");
