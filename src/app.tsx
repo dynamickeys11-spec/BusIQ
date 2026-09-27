@@ -76,7 +76,7 @@ function PipelineView({result}:{result:IntelligencePipelineResult}){
     <div><strong>Intent</strong><span>{result.intent.label}</span></div>
     <div><strong>Capabilities</strong><span>{result.capabilities.map(x=>x.reason).join(" · ")}</span></div>
     <div><strong>Research</strong><span>{result.researchPlan.filter(x=>x.status!=="not-required").map(x=>x.sourceClass).join(" · ")||"Not required"}</span></div>
-    <div><strong>Evidence</strong><span>{result.evidence.length} evidence item(s); no unconnected source is treated as fact.</span></div>
+    <div><strong>Evidence</strong><span>{result.evidence.some(x=>x.kind==="retrieved"||x.kind==="verified")?`${result.evidence.filter(x=>x.kind==="retrieved"||x.kind==="verified").length} retrieved/verified evidence item(s).`:"User input only; no retrieved source is being treated as fact."}</span></div>
     <div><strong>Execution</strong><span>{result.execution.length ? result.execution.map(x=>`${x.toolId}: ${x.state}`).join(" · ") : "No execution attempted."}</span></div>
    </div>
    {result.verification.missingEvidence.length>0&&<div className="truth-note"><strong>Evidence required</strong><p>{result.verification.missingEvidence.join(" ")}</p></div>}
