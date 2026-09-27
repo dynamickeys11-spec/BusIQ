@@ -22,6 +22,15 @@ function hasVerifiedProvenance(item: EvidenceItem): boolean {
   return item.kind === "verified" || item.verification === "verified";
 }
 
+function multiEvidenceFinding(evidence: EvidenceItem[], request: string): ReasoningConclusion {
+  return {
+    type: "FINDING",
+    statement: `The verified evidence set contains ${evidence.length} directly supported facts relevant to the request: ${request}`,
+    evidenceIds: evidence.map(item => item.id),
+    support: "supported",
+  };
+}
+
 export function reasonFromEvidence(
   evidence: EvidenceItem[],
   verificationState: "passed" | "blocked",
@@ -54,10 +63,23 @@ export function reasonFromEvidence(
     };
   }
 
-  if (verifiedRetrieved.length > 0) {
+  if (verifiedRetrieved.length > 1) {
     return {
       state: "ready",
-      conclusions: verifiedRetrieved.map(supportedFact),
+      conclusions: [
+        ...verifiedRetrieved.map(supportedFact),
+        multiEvidenceFinding(verifiedRetrieved, request),
+      ],
+      limitations: inferred.length
+        ? ["Some available material is inferred rather than directly retrieved or verified."]
+        : [],
+    };
+  }
+
+  if (verifiedRetrieved.length === 1) {
+    return {
+      state: "ready",
+      conclusions: [supportedFact(verifiedRetrieved[0])],
       limitations: inferred.length
         ? ["Some available material is inferred rather than directly retrieved or verified."]
         : [],
