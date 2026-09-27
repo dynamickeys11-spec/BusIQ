@@ -20,6 +20,7 @@ jobs:
         run: npm install
       - name: Type check
         id: typecheck
+        continue-on-error: true
         run: |
           set -o pipefail
           npm run check 2>&1 | tee typecheck.log
@@ -31,6 +32,7 @@ jobs:
           git add typecheck.log
           git commit -m "ci: capture typecheck failure" || true
           git push
+          exit 1
       - name: Production build
         if: steps.typecheck.outcome == 'success'
         run: npm run build
