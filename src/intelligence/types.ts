@@ -18,11 +18,18 @@ export type RoutingDecision = {
   capabilityId: string; selectedToolId?: string;
   state: "selected" | "blocked"; reason: string; requiredInputs: string[];
 };
+export type ExecutionRecord = {
+  toolId: string;
+  state: "success" | "blocked";
+  reason?: string;
+  output?: unknown;
+};
 export type IntelligencePipelineResult = {
   request: string; status: PipelineStatus;
   intent: ReturnType<typeof import("../bie/intent").resolveIntent>;
   ambiguity: AmbiguityIssue[]; capabilities: CapabilityRequirement[]; researchPlan: ResearchStep[];
   routing: RoutingDecision[];
+  execution: ExecutionRecord[];
   evidence: EvidenceItem[];
   verification: { state: "not-run" | "passed" | "blocked"; checks: string[]; missingEvidence: string[]; };
   answer: { type: "clarification" | "execution-plan" | "blocked"; headline: string; detail: string; nextAction: string; };
