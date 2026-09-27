@@ -160,6 +160,7 @@ describe("BUSIQ intelligence pipeline", () => {
     );
     expect(result.state).toBe("blocked");
     expect(result.missingEvidence.join(" ")).toContain("unknown relevance");
+    expect(result.missingEvidence.join(" ")).not.toContain("unknown source authority.");
   });
 
   it("asks for clarification for an unknown request", () => {
