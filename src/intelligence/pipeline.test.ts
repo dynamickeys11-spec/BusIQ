@@ -181,6 +181,29 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.missingEvidence[2]).toContain("not verified");
   });
 
+  it("blocks dated evidence for a current-time question", () => {
+    const result = verifyEvidence(
+      [{ id: "dated-source", kind: "retrieved", label: "Sales", detail: "Sales fell 8%.", source: "Connector", authority: "connected-source", freshness: "dated", evidenceDate: "2025-09-27", relevance: "direct", verification: "verified" }],
+      [{ id: "business-data", purpose: "Retrieve business data.", sourceClass: "business-data", status: "available", evidenceRequired: true }],
+      0,
+      true,
+      "What are sales currently?",
+    );
+    expect(result.state).toBe("blocked");
+    expect(result.missingEvidence.join(" ")).toContain("not current enough");
+  });
+
+  it("allows dated evidence for a historical question when it has a date", () => {
+    const result = verifyEvidence(
+      [{ id: "dated-source", kind: "retrieved", label: "Sales", detail: "Sales fell 8%.", source: "Connector", authority: "connected-source", freshness: "dated", evidenceDate: "2025-09-27", relevance: "direct", verification: "verified" }],
+      [{ id: "business-data", purpose: "Retrieve business data.", sourceClass: "business-data", status: "available", evidenceRequired: true }],
+      0,
+      true,
+      "What happened to sales last year?",
+    );
+    expect(result.state).toBe("passed");
+  });
+
   it("asks for clarification for an unknown request", () => {
     const result = runIntelligencePipeline("Tell me something useful");
     expect(result.status).toBe("needs_clarification");
