@@ -1,16 +1,25 @@
 import type { EvidenceItem, ResearchStep } from "./types";
 
+function requestedTimeContext(request: string): "current" | "historical" | "unspecified" {
+  if (/\\b(today|now|currently|current|latest|this week|this month|recent)\\b/i.test(request)) return "current";
+  if (/\\b(last year|last month|yesterday|previous|historical|in \\d{4}|during \\d{4})\\b/i.test(request)) return "historical";
+  return "unspecified";
+}
+
 export type EvidenceQualityIssue = {
   evidenceId: string;
   category: "authority" | "freshness" | "verification" | "relevance";
   message: string;
 };
 
-function evidenceQualityIssues(evidence: EvidenceItem[]): EvidenceQualityIssue[] {
+function evidenceQualityIssues(evidence: EvidenceItem[], request: string): EvidenceQualityIssue[] {
   const issues: EvidenceQualityIssue[] = [];
   for (const item of evidence.filter(item => item.kind === "retrieved" || item.kind === "verified")) {
     if (item.authority === "unknown" || !item.authority) issues.push({ evidenceId: item.id, category: "authority", message: `Evidence ${item.id} has unknown source authority.` });
+    const timeContext = requestedTimeContext(request);
     if (item.freshness === "unknown" || !item.freshness) issues.push({ evidenceId: item.id, category: "freshness", message: `Evidence ${item.id} has unknown freshness.` });
+    else if (timeContext === "current" && item.freshness !== "current") issues.push({ evidenceId: item.id, category: "freshness", message: `Evidence ${item.id} is not current enough for the requested time context.` });
+    else if (timeContext === "historical" && !item.evidenceDate) issues.push({ evidenceId: item.id, category: "freshness", message: `Evidence ${item.id} lacks a date needed for the historical time context.` });
     if (item.verification !== "verified") issues.push({ evidenceId: item.id, category: "verification", message: `Evidence ${item.id} is not verified.` });
     if (item.relevance === "unknown" || !item.relevance) issues.push({ evidenceId: item.id, category: "relevance", message: `Evidence ${item.id} has unknown relevance.` });
   }
@@ -22,6 +31,7 @@ export function verifyEvidence(
   researchPlan: ResearchStep[],
   ambiguityCount: number,
   executionSucceeded: boolean,
+  request = "",
 ) {
   const checks = [
     "Request has been normalized.",
@@ -53,7 +63,7 @@ export function verifyEvidence(
   }
 
   const retrievedEvidence = evidence.filter(item => item.kind === "retrieved" || item.kind === "verified");
-  const qualityIssues = evidenceQualityIssues(retrievedEvidence);
+  const qualityIssues = evidenceQualityIssues(retrievedEvidence, request);
   if (requiredEvidenceSteps.length > 0 && retrievedEvidence.length === 0) {
     return {
       state: "blocked" as const,
