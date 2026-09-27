@@ -13,6 +13,7 @@ export type RoutingDecision = {
 const capabilityToolMap: Record<string, string[]> = {
   "intent-resolution": ["deterministic-intent"],
   "business-context": ["local-context"],
+  "planning": ["local-plan-builder"],
   "business-data-retrieval": ["business-data-connector"],
   "external-research": ["external-research-connector"],
 };
