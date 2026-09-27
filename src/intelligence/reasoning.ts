@@ -18,6 +18,10 @@ function localInference(evidence: EvidenceItem[]): ReasoningConclusion {
   };
 }
 
+function hasVerifiedProvenance(item: EvidenceItem): boolean {
+  return item.kind === "verified" || item.verification === "verified";
+}
+
 export function reasonFromEvidence(
   evidence: EvidenceItem[],
   verificationState: "passed" | "blocked",
@@ -35,12 +39,25 @@ export function reasonFromEvidence(
   }
 
   const retrieved = evidence.filter(item => item.kind === "retrieved" || item.kind === "verified");
+  const verifiedRetrieved = retrieved.filter(hasVerifiedProvenance);
+  const unverifiedRetrieved = retrieved.filter(item => !hasVerifiedProvenance(item));
   const inferred = evidence.filter(item => item.kind === "inferred");
 
-  if (retrieved.length > 0) {
+  if (retrieved.length > 0 && unverifiedRetrieved.length > 0) {
+    return {
+      state: "insufficient",
+      conclusions: [],
+      limitations: [
+        "Retrieved evidence is present, but at least one retrieved item lacks verified provenance.",
+        "BUSIQ will not present unverified retrieved material as established fact.",
+      ],
+    };
+  }
+
+  if (verifiedRetrieved.length > 0) {
     return {
       state: "ready",
-      conclusions: retrieved.map(supportedFact),
+      conclusions: verifiedRetrieved.map(supportedFact),
       limitations: inferred.length
         ? ["Some available material is inferred rather than directly retrieved or verified."]
         : [],
