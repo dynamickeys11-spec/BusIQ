@@ -6,7 +6,7 @@ function evidenceQualityIssues(evidence: EvidenceItem[]): string[] {
     if (item.authority === "unknown" || !item.authority) issues.push(`Evidence ${item.id} has unknown source authority.`);
     if (item.freshness === "unknown" || !item.freshness) issues.push(`Evidence ${item.id} has unknown freshness.`);
     if (item.verification !== "verified") issues.push(`Evidence ${item.id} is not verified.`);
-    if (item.relevance === "unknown") issues.push(`Evidence ${item.id} has unknown relevance.`);
+    if (item.relevance === "unknown" || !item.relevance) issues.push(`Evidence ${item.id} has unknown relevance.`);
   }
   return issues;
 }
