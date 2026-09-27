@@ -163,6 +163,24 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.missingEvidence.join(" ")).not.toContain("unknown source authority.");
   });
 
+  it("reports distinct evidence quality categories", () => {
+    const result = verifyEvidence(
+      [
+        { id: "authority-missing", kind: "retrieved", label: "Sales", detail: "Sales fell.", source: "Connector", freshness: "current", verification: "verified", relevance: "direct" },
+        { id: "freshness-missing", kind: "retrieved", label: "Orders", detail: "Orders fell.", source: "Connector", authority: "connected-source", verification: "verified", relevance: "direct" },
+        { id: "verification-missing", kind: "retrieved", label: "Customers", detail: "Customers fell.", source: "Connector", authority: "connected-source", freshness: "current", relevance: "direct" },
+      ],
+      [],
+      0,
+      true,
+    );
+    expect(result.state).toBe("blocked");
+    expect(result.missingEvidence).toHaveLength(3);
+    expect(result.missingEvidence[0]).toContain("source authority");
+    expect(result.missingEvidence[1]).toContain("freshness");
+    expect(result.missingEvidence[2]).toContain("not verified");
+  });
+
   it("asks for clarification for an unknown request", () => {
     const result = runIntelligencePipeline("Tell me something useful");
     expect(result.status).toBe("needs_clarification");
