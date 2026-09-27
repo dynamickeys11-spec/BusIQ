@@ -1,12 +1,18 @@
 import type { EvidenceItem, ResearchStep } from "./types";
 
-function evidenceQualityIssues(evidence: EvidenceItem[]): string[] {
-  const issues: string[] = [];
+export type EvidenceQualityIssue = {
+  evidenceId: string;
+  category: "authority" | "freshness" | "verification" | "relevance";
+  message: string;
+};
+
+function evidenceQualityIssues(evidence: EvidenceItem[]): EvidenceQualityIssue[] {
+  const issues: EvidenceQualityIssue[] = [];
   for (const item of evidence.filter(item => item.kind === "retrieved" || item.kind === "verified")) {
-    if (item.authority === "unknown" || !item.authority) issues.push(`Evidence ${item.id} has unknown source authority.`);
-    if (item.freshness === "unknown" || !item.freshness) issues.push(`Evidence ${item.id} has unknown freshness.`);
-    if (item.verification !== "verified") issues.push(`Evidence ${item.id} is not verified.`);
-    if (item.relevance === "unknown" || !item.relevance) issues.push(`Evidence ${item.id} has unknown relevance.`);
+    if (item.authority === "unknown" || !item.authority) issues.push({ evidenceId: item.id, category: "authority", message: `Evidence ${item.id} has unknown source authority.` });
+    if (item.freshness === "unknown" || !item.freshness) issues.push({ evidenceId: item.id, category: "freshness", message: `Evidence ${item.id} has unknown freshness.` });
+    if (item.verification !== "verified") issues.push({ evidenceId: item.id, category: "verification", message: `Evidence ${item.id} is not verified.` });
+    if (item.relevance === "unknown" || !item.relevance) issues.push({ evidenceId: item.id, category: "relevance", message: `Evidence ${item.id} has unknown relevance.` });
   }
   return issues;
 }
@@ -60,7 +66,7 @@ export function verifyEvidence(
     return {
       state: "blocked" as const,
       checks,
-      missingEvidence: qualityIssues,
+      missingEvidence: qualityIssues.map(issue => issue.message),
     };
   }
 
