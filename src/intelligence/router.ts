@@ -21,7 +21,9 @@ const capabilityToolMap: Record<string, string[]> = {
 
 function routeOne(capabilityId: string): RoutingDecision {
   const candidates = getCapability(capabilityId)?.suitableTools ?? capabilityToolMap[capabilityId] ?? [];
+  if (!candidates.length) return { capabilityId, state: "blocked", reason: "No registered tool is suitable for this capability.", requiredInputs: [] };
   const available = candidates
+    .filter(id => Boolean(getTool(id)))
     .map(id => getTool(id))
     .filter((tool): tool is ToolDescriptor => Boolean(tool))
     .find(tool => tool.availability === "available");
