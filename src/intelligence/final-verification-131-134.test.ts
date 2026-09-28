@@ -22,8 +22,6 @@ describe("BUSIQ final verification: performance and recovery", () => {
     }
     const elapsedMs = performance.now() - started;
 
-    // This is a regression guard, not a production SLA. The local deterministic
-    // pipeline should remain comfortably below this ceiling on CI hardware.
     expect(elapsedMs).toBeLessThan(5_000);
   });
 
@@ -58,9 +56,11 @@ describe("BUSIQ final verification: performance and recovery", () => {
   });
 
   it("blocks unknown tools and records a recoverable execution result", () => {
-    const result = executeTool({ toolId: "missing-tool", inputs: {} });
+    const result = executeTool({ toolId: "missing-tool", request: "test", inputs: {} });
     expect(result.state).toBe("blocked");
-    expect(result.reason).toContain("not registered");
+    if (result.state === "blocked") {
+      expect(result.reason).toContain("not registered");
+    }
   });
 
   it("records action failure without pretending the action executed", () => {
