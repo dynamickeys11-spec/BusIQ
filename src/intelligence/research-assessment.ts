@@ -30,7 +30,7 @@ export function assessResearchEvidence(items: EvidenceItem[]): ResearchAssessmen
   for (const [label, group] of byLabel) {
     const directions = new Set(group.map(item => {
       const text = item.detail.toLowerCase();
-      if (/\b(increase|increased|up|rose|rising|grew|growth)\b/.test(text)) return "up";
+      if (/\b(increase|increased|up|rose|rising|grew)\b/.test(text)) return "up";
       if (/\b(decrease|decreased|down|fell|falling|declined|decline|dropped)\b/.test(text)) return "down";
       return "neutral";
     }).filter(x => x !== "neutral"));
