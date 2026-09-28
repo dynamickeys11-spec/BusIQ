@@ -230,6 +230,21 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.missingEvidence.join(" ")).toContain("incompatible scopes");
   });
 
+  it("blocks verification when scoped and unscoped evidence are mixed", () => {
+    const result = verifyEvidence(
+      [
+        { id: "scoped", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct", scope: { businessId: "business-a" } },
+        { id: "unscoped", kind: "retrieved", label: "Orders", detail: "Orders increased 4%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
+      ],
+      [],
+      0,
+      true,
+      "How is my business doing?",
+    );
+    expect(result.state).toBe("blocked");
+    expect(result.missingEvidence.join(" ")).toContain("scoped and unscoped");
+  });
+
   it("allows multiple evidence items when their structured scope matches", () => {
     const result = verifyEvidence(
       [
