@@ -139,8 +139,8 @@ describe("BUSIQ intelligence pipeline", () => {
   it("does not treat different scopes as conflicting evidence", () => {
     const result = reasonFromEvidence(
       [
-        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", scope: "Online", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
-        { id: "source-2", kind: "retrieved", label: "Sales", detail: "Sales decreased 3%.", source: "Connector", scope: "Retail", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
+        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", scope: { geography: "Online" }, authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
+        { id: "source-2", kind: "retrieved", label: "Sales", detail: "Sales decreased 3%.", source: "Connector", scope: { geography: "Retail" }, authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
       ],
       "passed",
       "How did sales change?",
@@ -211,6 +211,35 @@ describe("BUSIQ intelligence pipeline", () => {
       0,
       true,
       "What happened to sales last year?",
+    );
+    expect(result.state).toBe("passed");
+  });
+
+  it("blocks verification when retrieved evidence has incompatible business scopes", () => {
+    const result = verifyEvidence(
+      [
+        { id: "business-a", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct", scope: { businessId: "business-a" } },
+        { id: "business-b", kind: "retrieved", label: "Orders", detail: "Orders increased 4%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct", scope: { businessId: "business-b" } },
+      ],
+      [],
+      0,
+      true,
+      "How is my business doing?",
+    );
+    expect(result.state).toBe("blocked");
+    expect(result.missingEvidence.join(" ")).toContain("incompatible scopes");
+  });
+
+  it("allows multiple evidence items when their structured scope matches", () => {
+    const result = verifyEvidence(
+      [
+        { id: "sales", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct", scope: { businessId: "business-a", periodStart: "2026-09-01", periodEnd: "2026-09-27" } },
+        { id: "orders", kind: "retrieved", label: "Orders", detail: "Orders increased 4%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct", scope: { businessId: "business-a", periodStart: "2026-09-01", periodEnd: "2026-09-27" } },
+      ],
+      [],
+      0,
+      true,
+      "How is my business doing?",
     );
     expect(result.state).toBe("passed");
   });
