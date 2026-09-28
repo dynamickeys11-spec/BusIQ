@@ -19,7 +19,7 @@ describe("persistent context", () => {
       expiresAt: "2026-09-28T20:00:00.000Z",
     });
     expect(contextFreshness(expired, now)).toBe("expired");
-    expect(contextFreshness(expiring, now)).toBe("current");
+    expect(contextFreshness(expiring, now)).toBe("expiring");
     expect(filterUsableContext([expired, expiring], now)).toHaveLength(1);
   });
 
