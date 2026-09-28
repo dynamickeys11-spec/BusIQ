@@ -301,3 +301,23 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.intent.kind).toBe("unknown");
   });
 });
+
+
+describe("research engine safeguards", () => {
+  it("generates a request-aware research query", async () => {
+    const { resolveIntent } = await import("../bie/intent");
+    const { generateResearchQuery } = await import("./research-engine");
+    const intent = resolveIntent("What are the latest market trends?");
+    const query = generateResearchQuery(intent);
+    expect(query.query).toContain("market");
+    expect(query.requiredSourceClasses).toContain("external-research");
+  });
+
+  it("requires more than one source for triangulation", async () => {
+    const { assessResearchEvidence } = await import("./research-assessment");
+    const result = assessResearchEvidence([
+      { id: "r1", kind: "retrieved", label: "Market trend", detail: "Growth increased", source: "Source A", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
+    ]);
+    expect(result.triangulated).toBe(false);
+  });
+});
