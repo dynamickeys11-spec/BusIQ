@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { executeActionSafely } from "./action-execution";
+import { summarizeActionAudit } from "./action-audit";
 import { getActionForKind } from "./actions";
 
 describe("safe action execution", () => {
@@ -24,5 +25,16 @@ describe("safe action execution", () => {
     const result = executeActionSafely(getActionForKind("create")!, {});
     expect(result.state).toBe("executed");
     expect(result.audit.map(event => event.state)).toEqual(["requested", "executed"]);
+  });
+
+  it("summarizes the latest state per action without pretending the audit is durable", () => {
+    const result = executeActionSafely(getActionForKind("send")!, {
+      authorization: { granted: true },
+    });
+    const summary = summarizeActionAudit(result.audit);
+    expect(summary).toHaveLength(1);
+    expect(summary[0].actionId).toBe("send-message");
+    expect(summary[0].latestState).toBe("blocked");
+    expect(summary[0].eventCount).toBe(2);
   });
 });
