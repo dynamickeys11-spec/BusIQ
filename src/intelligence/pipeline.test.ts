@@ -110,6 +110,17 @@ describe("BUSIQ intelligence pipeline", () => {
     });
   });
 
+  it("does not promote indirectly relevant verified evidence into a factual answer", () => {
+    const result = reasonFromEvidence(
+      [{ id: "source-1", kind: "retrieved", label: "Orders", detail: "Orders fell 13%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "indirect" }],
+      "passed",
+      "Why did sales fall?",
+    );
+    expect(result.state).toBe("insufficient");
+    expect(result.conclusions).toHaveLength(0);
+    expect(result.limitations.join(" ")).toContain("not directly relevant");
+  });
+
   it("blocks combined findings when verified evidence conflicts", () => {
     const result = reasonFromEvidence(
       [
