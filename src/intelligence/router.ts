@@ -1,6 +1,7 @@
 import type { ResolvedIntent } from "../bie/intent";
 import type { CapabilityRequirement } from "./types";
 import { getTool, type ToolDescriptor } from "./tools";
+import { getCapability } from "./capabilities";
 
 export type RoutingDecision = {
   capabilityId: string;
@@ -19,7 +20,7 @@ const capabilityToolMap: Record<string, string[]> = {
 };
 
 function routeOne(capabilityId: string): RoutingDecision {
-  const candidates = capabilityToolMap[capabilityId] ?? [];
+  const candidates = getCapability(capabilityId)?.suitableTools ?? capabilityToolMap[capabilityId] ?? [];
   const available = candidates
     .map(id => getTool(id))
     .filter((tool): tool is ToolDescriptor => Boolean(tool))
@@ -30,7 +31,7 @@ function routeOne(capabilityId: string): RoutingDecision {
       capabilityId,
       selectedToolId: available.id,
       state: "selected",
-      reason: "A suitable available tool satisfies this capability.",
+      reason: `Selected ${available.label} because it is registered as suitable for this capability and is currently available.`,
       requiredInputs: available.requiredInputs,
     };
   }
