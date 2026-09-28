@@ -107,7 +107,7 @@ export function selectRelevantContext(
   const normalized = request.toLowerCase();
   const tokens = normalized.split(/[^a-z0-9]+/i).filter(token => token.length >= 3);
   return usable.filter(entry => {
-    if (entry.kind === "business" || entry.kind === "user") return true;
+    if (entry.kind === "business" || entry.kind === "user" || entry.kind === "knowledge" || entry.kind === "decision") return true;
     const haystack = `${entry.key} ${entry.value}`.toLowerCase();
     return tokens.some(token => haystack.includes(token));
   });
