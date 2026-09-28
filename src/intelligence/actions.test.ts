@@ -21,7 +21,7 @@ describe("action registry", () => {
 
     const blocked = buildActionDecision(send, { authorization: { granted: true } });
     expect(blocked.state).toBe("blocked");
-    expect(blocked.reason).toContain("confirmation");
+    expect(blocked.state).toBe("blocked");\n    if (blocked.state === "blocked") expect(blocked.reason).toContain("confirmation");
 
     const ready = buildActionDecision(send, {
       authorization: { granted: true, scope: "messaging" },
