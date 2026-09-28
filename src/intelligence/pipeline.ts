@@ -35,6 +35,8 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       execution: [],
       evidence: initialEvidence,
       verification: verifyEvidence(initialEvidence, researchPlan, ambiguity.length, false, normalized),
+      researchAssessment: initialResearchAssessment,
+      researchStopping: initialResearchStopping,
       reasoning: reasonFromEvidence(initialEvidence, "blocked", normalized),
       answer: {
         type: "clarification",
@@ -53,6 +55,8 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       execution: [],
       evidence: initialEvidence,
       verification: verifyEvidence(initialEvidence, researchPlan, 0, false, normalized),
+      researchAssessment: initialResearchAssessment,
+      researchStopping: initialResearchStopping,
       reasoning: reasonFromEvidence(initialEvidence, "blocked", normalized),
       answer: {
         type: "blocked",
