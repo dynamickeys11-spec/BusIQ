@@ -24,8 +24,8 @@ describe("BUSIQ roadmap regression coverage", () => {
 
   it("stops research on conflicting evidence", () => {
     const assessment = assessResearchEvidence([
-      { id:"a",kind:"retrieved",label:"Sales",detail:"Sales increased 8%.",source:"A",authority:"external-source",freshness:"current",verification:"verified",relevance:"direct" },
-      { id:"b",kind:"retrieved",label:"Sales",detail:"Sales decreased 3%.",source:"B",authority:"external-source",freshness:"current",verification:"verified",relevance:"direct" },
+      { id:"a",kind:"retrieved",label:"Sales",detail:"Sales increased 8%.",source:"A",authority:"connected-source",freshness:"current",verification:"verified",relevance:"direct" },
+      { id:"b",kind:"retrieved",label:"Sales",detail:"Sales decreased 3%.",source:"B",authority:"connected-source",freshness:"current",verification:"verified",relevance:"direct" },
     ]);
     expect(assessment.conflicts.length).toBeGreaterThan(0);
     expect(decideResearchStopping(assessment, 2).reason).toBe("conflict-detected");
