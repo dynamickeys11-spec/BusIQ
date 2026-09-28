@@ -28,7 +28,7 @@ function normalizeDetail(detail: string): string {
 
 function hasComparableScope(left: EvidenceItem, right: EvidenceItem): boolean {
   if (left.label.trim().toLowerCase() !== right.label.trim().toLowerCase()) return false;
-  if (left.scope && right.scope && left.scope !== right.scope) return false;
+  if (left.scope && right.scope && JSON.stringify(left.scope) !== JSON.stringify(right.scope)) return false;
   if (left.evidenceDate && right.evidenceDate && left.evidenceDate !== right.evidenceDate) return false;
   return true;
 }
