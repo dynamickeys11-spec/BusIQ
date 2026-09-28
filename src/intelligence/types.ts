@@ -4,8 +4,16 @@ export type CapabilityStatus = "available" | "unavailable";
 
 export type EvidenceQuality = "strong" | "limited" | "unknown";
 
+export type EvidenceScope = {
+  businessId?: string;
+  entityId?: string;
+  geography?: string;
+  periodStart?: string;
+  periodEnd?: string;
+};
+
 export type EvidenceItem = {
-  id: string; kind: EvidenceKind; label: string; detail: string; source: string; authority?: "user" | "connected-source" | "specialist-tool" | "unknown"; freshness?: "current" | "dated" | "unknown"; verification?: "unverified" | "verified"; evidenceDate?: string; scope?: string; relevance?: "direct" | "indirect" | "unknown";
+  id: string; kind: EvidenceKind; label: string; detail: string; source: string; authority?: "user" | "connected-source" | "specialist-tool" | "unknown"; freshness?: "current" | "dated" | "unknown"; verification?: "unverified" | "verified"; evidenceDate?: string; scope?: EvidenceScope; relevance?: "direct" | "indirect" | "unknown";
 };
 export type AmbiguityIssue = {
   field: "subject" | "time" | "scope" | "goal"; reason: string; question: string;
