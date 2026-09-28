@@ -1,17 +1,21 @@
-import { runIntelligencePipeline } from "../src/intelligence";
+import { consumeUsage, defaultUsagePolicy, runIntelligencePipeline } from "../src/intelligence";
 
-const MAX_REQUEST_CHARS = 4000;
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 30;
 const rateBuckets = new Map<string, { startedAt: number; count: number }>();
 
 export default async function handler(request: Request): Promise<Response> {
   const requestId = crypto.randomUUID();
   const startedAt = Date.now();
+  const rateKey = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "anonymous";
 
   if (request.method !== "POST") {
     console.warn(JSON.stringify({ event: "api.intelligence.rejected", requestId, reason: "method" }));
     return json({ error: "Method not allowed", requestId }, 405, { allow: "POST" });
+  }
+
+  const usage = consumeUsage(rateBuckets, rateKey, startedAt, defaultUsagePolicy);
+  if (!usage.allowed) {
+    console.warn(JSON.stringify({ event: "api.intelligence.rate_limited", requestId }));
+    return json({ error: "Rate limit exceeded", requestId }, 429, { "retry-after": String(usage.retryAfterSeconds) });
   }
 
   if (!request.headers.get("content-type")?.includes("application/json")) {
@@ -24,7 +28,7 @@ export default async function handler(request: Request): Promise<Response> {
     if (typeof body.request !== "string" || !body.request.trim()) {
       return json({ error: "A non-empty request string is required", requestId }, 400);
     }
-    if (body.request.length > MAX_REQUEST_CHARS) {
+    if (body.request.length > defaultUsagePolicy.maxRequestChars) {
       return json({ error: "Request is too large", requestId }, 413);
     }
 
