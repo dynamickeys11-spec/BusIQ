@@ -174,14 +174,14 @@ export function buildActionDecision(
       : "No consequential confirmation is required.",
   };
 
-  if (action.availability !== "available") {
-    return { state: "blocked", action, reason: describeAction(action), confirmation };
-  }
   if (!authorizeAction(action, options.authorization)) {
     return { state: "blocked", action, reason: "Authorization is required before this action can execute.", confirmation };
   }
   if (!confirmation.confirmed) {
     return { state: "blocked", action, reason: "Explicit confirmation is required before this consequential action can execute.", confirmation };
+  }
+  if (action.availability !== "available") {
+    return { state: "blocked", action, reason: describeAction(action), confirmation };
   }
   return { state: "ready", action, confirmation };
 }
