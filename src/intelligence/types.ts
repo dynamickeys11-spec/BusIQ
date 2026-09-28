@@ -79,5 +79,6 @@ export type IntelligencePipelineResult = {
   verification: { state: "not-run" | "passed" | "blocked"; checks: string[]; missingEvidence: string[]; diagnostics?: EvidenceDiagnostic[]; sufficiency?: EvidenceSufficiency; };
   reasoning: ReasoningResult;
   answer: AnswerPresentation;
+  answerQuality?: import("./answer-quality").AnswerQuality;
   trace: string[];
 };
