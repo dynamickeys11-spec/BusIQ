@@ -1,5 +1,18 @@
 import type { EvidenceItem, ResearchStep } from "./types";
 
+function scopeKey(scope: EvidenceItem["scope"]): string {
+  return JSON.stringify(scope ?? {});
+}
+
+function evidenceScopeIssues(evidence: EvidenceItem[]): string[] {
+  const scoped = evidence.filter(item => item.scope);
+  if (scoped.length < 2) return [];
+  const keys = new Set(scoped.map(item => scopeKey(item.scope)));
+  return keys.size > 1
+    ? ["Evidence items have incompatible scopes and cannot be combined into one factual answer."]
+    : [];
+}
+
 function requestedTimeContext(request: string): "current" | "historical" | "unspecified" {
   if (/\b(today|now|currently|current|latest|this week|this month|recent)\b/i.test(request)) return "current";
   if (/\b(last year|last month|yesterday|previous|historical|in \d{4}|during \d{4})\b/i.test(request)) return "historical";
@@ -64,11 +77,20 @@ export function verifyEvidence(
 
   const retrievedEvidence = evidence.filter(item => item.kind === "retrieved" || item.kind === "verified");
   const qualityIssues = evidenceQualityIssues(retrievedEvidence, request);
+  const scopeIssues = evidenceScopeIssues(retrievedEvidence);
   if (requiredEvidenceSteps.length > 0 && retrievedEvidence.length === 0) {
     return {
       state: "blocked" as const,
       checks,
       missingEvidence: ["No retrieved or verified evidence is available for the required factual step."],
+    };
+  }
+
+  if (scopeIssues.length > 0) {
+    return {
+      state: "blocked" as const,
+      checks,
+      missingEvidence: scopeIssues,
     };
   }
 
