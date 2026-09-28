@@ -1,12 +1,12 @@
 import {useEffect,useMemo,useState,type ReactNode} from "react";
-import {runIntelligencePipeline,type IntelligencePipelineResult} from "./intelligence";
+import {runIntelligencePipeline,createContextEntry,mergeContext,type IntelligencePipelineResult,type ContextState} from "./intelligence";
 
 type Experience="Workspace"|"Discover"|"Build"|"Library"|"Account";
 type BusinessProfile={name:string;type:string;location:string};
 type WorkItem={id:string;request:string;intent:IntelligencePipelineResult["intent"];createdAt:string;status:"active"|"complete";pipeline?:IntelligencePipelineResult};
 type LibraryItem={id:string;title:string;body:string;createdAt:string};
 const experiences:Experience[]=["Workspace","Discover","Build","Library","Account"];
-const profileKey="busiq:business-profile",workKey="busiq:work",libraryKey="busiq:library";
+const profileKey="busiq:business-profile",workKey="busiq:work",libraryKey="busiq:library",contextKey="busiq:context";
 function load<T>(key:string,fallback:T):T{try{const v=localStorage.getItem(key);return v?JSON.parse(v)as T:fallback}catch{return fallback}}
 
 export default function App(){
@@ -14,6 +14,7 @@ export default function App(){
  const[profile,setProfile]=useState<BusinessProfile>(()=>load(profileKey,{name:"",type:"",location:""}));
  const[work,setWork]=useState<WorkItem[]>(()=>load(workKey,[]));
  const[library,setLibrary]=useState<LibraryItem[]>(()=>load(libraryKey,[]));
+ const[context,setContext]=useState<ContextState>(()=>load(contextKey,{business:[],user:[],conversation:[],work:[],decisions:[],knowledge:[],provenance:[]}));
  const[request,setRequest]=useState("");
  const[pipeline,setPipeline]=useState<IntelligencePipelineResult|null>(null);
  const[online,setOnline]=useState(()=>navigator.onLine);
@@ -21,22 +22,35 @@ export default function App(){
  useEffect(()=>{localStorage.setItem(profileKey,JSON.stringify(profile))},[profile]);
  useEffect(()=>{localStorage.setItem(workKey,JSON.stringify(work))},[work]);
  useEffect(()=>{localStorage.setItem(libraryKey,JSON.stringify(library))},[library]);
+ useEffect(()=>{localStorage.setItem(contextKey,JSON.stringify(context))},[context]);
+ useEffect(()=>{
+   const entries = [
+     profile.name ? createContextEntry("business","name",profile.name) : null,
+     profile.type ? createContextEntry("business","type",profile.type) : null,
+     profile.location ? createContextEntry("business","location",profile.location) : null,
+   ].filter(Boolean) as NonNullable<ReturnType<typeof createContextEntry>>[];
+   if(entries.length) setContext(current=>({...current,business:mergeContext(current.business,entries)}));
+ },[profile.name,profile.type,profile.location]);
  useEffect(()=>{const on=()=>setOnline(true),off=()=>setOnline(false);addEventListener("online",on);addEventListener("offline",off);return()=>{removeEventListener("online",on);removeEventListener("offline",off)}},[]);
  const activeWork=useMemo(()=>work.filter(x=>x.status==="active"),[work]);
 
  function submitRequest(value=request){
-   const result=runIntelligencePipeline(value);
+   const result=runIntelligencePipeline(value,{context});
    if(!result.request)return;
    setPipeline(result);
    if(result.status!=="needs_clarification"){
-     setWork(c=>[{id:crypto.randomUUID(),request:result.request,intent:result.intent,createdAt:new Date().toISOString(),status:"active" as const,pipeline:result},...c].slice(0,20));
+     const workId=crypto.randomUUID();
+     setWork(c=>[{id:workId,request:result.request,intent:result.intent,createdAt:new Date().toISOString(),status:"active" as const,pipeline:result},...c].slice(0,20));
+     setContext(current=>({...current,work:mergeContext(current.work,[createContextEntry("work",workId,result.request,{workId})])}));
    }
    setRequest("");
    setActive("Workspace");
  }
  function saveNote(){
    const title=request.trim();if(!title)return;
-   setLibrary(c=>[{id:crypto.randomUUID(),title,body:"Created from the BUSIQ workspace. This is user-owned local business knowledge.",createdAt:new Date().toISOString()},...c]);
+   const id=crypto.randomUUID();
+   setLibrary(c=>[{id,title,body:"Created from the BUSIQ workspace. This is user-owned local business knowledge.",createdAt:new Date().toISOString()},...c]);
+   setContext(current=>({...current,knowledge:mergeContext(current.knowledge,[createContextEntry("knowledge",id,title,{source:"BUSIQ Library",workId:id})])}));
    setRequest("");setSavedMessage("Saved to Library.");setTimeout(()=>setSavedMessage(""),2200);
  }
 
@@ -57,7 +71,7 @@ export default function App(){
     <section className="attention-section"><div className="section-header"><div className="section-kicker">Current state</div><h2>{profile.name?"What matters now":"Start with the business"}</h2></div>
       {!profile.name?<article className="state-row"><div><strong>Your business is not connected yet.</strong><p>Enter your business details in Account. BUSIQ will store them locally on this device until a real backend is introduced.</p></div><button className="secondary-button" type="button" onClick={()=>setActive("Account")}>Set up business</button></article>
       :activeWork.length===0?<article className="state-row"><div><strong>No active work.</strong><p>Ask BUSIQ a real question or start a plan. New work appears here automatically.</p></div></article>
-      :activeWork.slice(0,4).map(item=><article className="state-row" key={item.id}><div><strong>{item.request}</strong><p>{item.intent.label}</p></div><div className="row-actions"><button className="secondary-button" type="button" onClick={()=>{setPipeline(item.pipeline??runIntelligencePipeline(item.request));setActive("Workspace")}}>Resume</button><button className="secondary-button" type="button" onClick={()=>setWork(c=>c.map(x=>x.id===item.id?{...x,status:"complete"}:x))}>Mark complete</button></div></article>)}
+      :activeWork.slice(0,4).map(item=><article className="state-row" key={item.id}><div><strong>{item.request}</strong><p>{item.intent.label}</p></div><div className="row-actions"><button className="secondary-button" type="button" onClick={()=>{setPipeline(item.pipeline??runIntelligencePipeline(item.request,{context}));setActive("Workspace")}}>Resume</button><button className="secondary-button" type="button" onClick={()=>setWork(c=>c.map(x=>x.id===item.id?{...x,status:"complete"}:x))}>Mark complete</button></div></article>)}
     </section>
     <section className="attention-section"><div className="section-header"><div className="section-kicker">Work history</div><h2>Recent work</h2></div>
       {work.length===0?<div className="empty-state"><strong>No work history yet.</strong><span>Requests become resumable work automatically.</span></div>:work.slice(0,8).map(item=><article className="state-row" key={item.id}><div><strong>{item.request}</strong><p>{item.intent.label} · {item.status}</p></div><button className="secondary-button" type="button" onClick={()=>{setPipeline(item.pipeline??runIntelligencePipeline(item.request));setActive("Workspace")}}>Open</button></article>)}
@@ -79,7 +93,7 @@ function PipelineView({result}:{result:IntelligencePipelineResult}){
     <div><strong>Intent</strong><span>{result.intent.label}</span></div>
     <div><strong>Capabilities</strong><span>{result.capabilities.map(x=>x.reason).join(" · ")}</span></div>
     <div><strong>Research</strong><span>{result.researchPlan.filter(x=>x.status!=="not-required").map(x=>x.sourceClass).join(" · ")||"Not required"}</span></div>
-    <div><strong>Evidence</strong><span>{result.evidence.some(x=>x.kind==="retrieved"||x.kind==="verified")?`${result.evidence.filter(x=>x.kind==="retrieved"||x.kind==="verified").length} retrieved/verified evidence item(s).`:"User input only; no retrieved source is being treated as fact."}</span></div>
+    <div><strong>Context</strong><span>{result.contextUsed?.length ? `${result.contextUsed.length} usable persistent context item(s); not treated as verified evidence.` : "No persistent context used."}</span></div>\n    <div><strong>Evidence</strong><span>{result.evidence.some(x=>x.kind==="retrieved"||x.kind==="verified")?`${result.evidence.filter(x=>x.kind==="retrieved"||x.kind==="verified").length} retrieved/verified evidence item(s).`:"User input only; no retrieved source is being treated as fact."}</span></div>
     <div><strong>Execution</strong><span>{result.execution.length ? result.execution.map(x=>`${x.toolId}: ${x.state}`).join(" · ") : "No execution attempted."}</span></div>
    </div>
    {result.verification.missingEvidence.length>0&&<div className="truth-note"><strong>Evidence required</strong><p>{result.verification.missingEvidence.join(" ")}</p></div>}
