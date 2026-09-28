@@ -13,7 +13,7 @@ export type EvidenceScope = {
 };
 
 export type EvidenceItem = {
-  id: string; kind: EvidenceKind; label: string; detail: string; source: string; authority?: "user" | "connected-source" | "specialist-tool" | "unknown"; freshness?: "current" | "dated" | "unknown"; verification?: "unverified" | "verified"; evidenceDate?: string; scope?: EvidenceScope; relevance?: "direct" | "indirect" | "unknown";
+  id: string; kind: EvidenceKind; label: string; detail: string; source: string; authority?: "user" | "connected-source" | "specialist-tool" | "unknown"; freshness?: "current" | "dated" | "unknown"; verification?: "unverified" | "verified"; evidenceDate?: string; scope?: EvidenceScope; relevance?: "direct" | "indirect" | "unknown"; quality?: EvidenceQuality;
 };
 export type AmbiguityIssue = {
   field: "subject" | "time" | "scope" | "goal"; reason: string; question: string;
