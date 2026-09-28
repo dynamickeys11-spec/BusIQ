@@ -77,7 +77,7 @@ describe("BUSIQ intelligence hardening: roadmap 121-130", () => {
   it("128 — rejects malformed answer presentation but accepts a complete blocked answer", () => {
     const result = {
       status: "blocked" as const,
-      answer: { type: "blocked", headline: "", detail: "", nextAction: "", evidence: ["missing"] },
+      answer: { type: "blocked" as const, headline: "", detail: "", nextAction: "", evidence: ["missing"] },
       evidence: [],
       reasoning: [],
     };
@@ -85,7 +85,7 @@ describe("BUSIQ intelligence hardening: roadmap 121-130", () => {
 
     const valid = {
       status: "blocked" as const,
-      answer: { type: "blocked", headline: "BUSIQ cannot access that data yet.", detail: "The required connector is not connected.", nextAction: "Connect the required business system before retrying." },
+      answer: { type: "blocked" as const, headline: "BUSIQ cannot access that data yet.", detail: "The required connector is not connected.", nextAction: "Connect the required business system before retrying." },
       evidence: [],
       reasoning: [],
     };
