@@ -68,6 +68,8 @@ export type AnswerPresentation = {
 };
 
 export type IntelligencePipelineResult = {
+  action?: import("./actions").ActionRequest;
+  actionDecision?: import("./actions").ActionDecision;
   request: string; status: PipelineStatus;
   intent: ReturnType<typeof import("../bie/intent").resolveIntent>;
   ambiguity: AmbiguityIssue[]; capabilities: CapabilityRequirement[]; researchPlan: ResearchStep[];
