@@ -81,7 +81,7 @@ export type TruthfulnessClaim =
   | { kind: "evidence"; evidenceId: string; verified: boolean };
 
 export function validateTruthfulnessClaim(claim: TruthfulnessClaim): SecurityDecision {
-  if (!claim.hasAccess && claim.kind === "access") {
+  if (claim.kind === "access" && !claim.hasAccess) {
     return { state: "blocked", reason: `BUSIQ cannot claim access to ${claim.resource} because access was not established.` };
   }
   if (claim.kind === "action" && !claim.executed) {
