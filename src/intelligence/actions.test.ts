@@ -21,14 +21,18 @@ describe("action registry", () => {
 
     const blocked = buildActionDecision(send, { authorization: { granted: true } });
     expect(blocked.state).toBe("blocked");
-    expect(blocked.state).toBe("blocked");\n    if (blocked.state === "blocked") expect(blocked.reason).toContain("confirmation");
+    if (blocked.state === "blocked") {
+      expect(blocked.reason).toContain("confirmation");
+    }
 
     const ready = buildActionDecision(send, {
       authorization: { granted: true, scope: "messaging" },
       confirmed: true,
     });
     expect(ready.state).toBe("blocked");
-    expect(ready.reason).toContain("not connected");
+    if (ready.state === "blocked") {
+      expect(ready.reason).toContain("not connected");
+    }
   });
 
   it("never treats unavailable actions as executable", () => {
