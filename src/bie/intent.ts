@@ -16,7 +16,7 @@ const currentBusiness=/\b(my|our|this|current|today|yesterday|last|this week|thi
 const businessObjects=/\b(sales|revenue|customer|profit|cash|inventory|supplier|expense|orders?|products?)\b/i;
 const externalObjects=/\b(market|competitor|industry|regulat|benchmark|trend)\b/i;
 const timePattern=/\b(today|yesterday|tomorrow|now|currently|latest|recent|this week|this month|last week|last month|last year|next week|next month|\d{4})\b/i;
-const entityPattern=/\b(?:for|about|regarding|on|of)\s+([A-Z][\w&.-]*(?:\s+[A-Z][\w&.-]*){0,3})/;
+const entityPattern=/\b(?:for|about|regarding|on|of)\s+([A-Z][\w&.-]*(?:\s+[A-Z][\w&.-]*){0,3})/g;
 
 function contextOf(request:string):RequestContext {
   const time=request.match(timePattern)?.[0];
