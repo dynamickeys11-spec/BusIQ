@@ -259,6 +259,33 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.state).toBe("passed");
   });
 
+  it("preserves conflicting facts but blocks a synthesized finding", () => {
+    const result = reasonFromEvidence(
+      [
+        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct", scope: { businessId: "business-a", periodStart: "2026-09-01", periodEnd: "2026-09-27" } },
+        { id: "source-2", kind: "retrieved", label: "Sales", detail: "Sales decreased 3%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct", scope: { businessId: "business-a", periodStart: "2026-09-01", periodEnd: "2026-09-27" } },
+      ],
+      "passed",
+      "How did sales change?",
+    );
+    expect(result.state).toBe("insufficient");
+    expect(result.conclusions.map(item => item.type)).toEqual(["FACT", "FACT"]);
+    expect(result.limitations.join(" ")).toContain("Conflicting evidence");
+  });
+
+  it("does not call evidence a conflict when the dates differ", () => {
+    const result = reasonFromEvidence(
+      [
+        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", authority: "connected-source", freshness: "dated", evidenceDate: "2026-09-26", verification: "verified", relevance: "direct" },
+        { id: "source-2", kind: "retrieved", label: "Sales", detail: "Sales decreased 3%.", source: "Connector", authority: "connected-source", freshness: "dated", evidenceDate: "2026-09-27", verification: "verified", relevance: "direct" },
+      ],
+      "passed",
+      "How did sales change?",
+    );
+    expect(result.state).toBe("ready");
+    expect(result.limitations.join(" ")).not.toContain("Conflicting evidence");
+  });
+
   it("asks for clarification for an unknown request", () => {
     const result = runIntelligencePipeline("Tell me something useful");
     expect(result.status).toBe("needs_clarification");
