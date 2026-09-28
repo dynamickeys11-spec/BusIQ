@@ -16,3 +16,6 @@ export type { ContextKind, ContextFreshness, ContextEntry, ContextState } from "
 
 export { checkBusinessIsolation, checkResourceSensitivity, authorizeResource, validateTruthfulnessClaim, createLocalSecurityPolicy } from "./security";
 export type { SecuritySubject, SecurityResource, SecurityDecision, ToolPermission, SecurityPolicy, AccessMode, DataSensitivity, TruthfulnessClaim } from "./security";
+
+export { requireAuthenticated, authorizeBusinessMembership } from "./auth";
+export type { AuthenticationState, SessionIdentity, BusinessMembership, AuthorizationRequest, AuthorizationResult } from "./auth";
