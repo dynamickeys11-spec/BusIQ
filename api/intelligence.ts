@@ -1,4 +1,5 @@
 import { consumeUsage, defaultUsagePolicy, runIntelligencePipeline } from "../src/intelligence";
+import { validateRequestBody } from "../src/intelligence/api-validation";
 
 const rateBuckets = new Map<string, { startedAt: number; count: number }>();
 
