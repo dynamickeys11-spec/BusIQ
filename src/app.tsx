@@ -93,9 +93,21 @@ function PipelineView({result}:{result:IntelligencePipelineResult}){
     <div><strong>Intent</strong><span>{result.intent.label}</span></div>
     <div><strong>Capabilities</strong><span>{result.capabilities.map(x=>x.reason).join(" · ")}</span></div>
     <div><strong>Research</strong><span>{result.researchPlan.filter(x=>x.status!=="not-required").map(x=>x.sourceClass).join(" · ")||"Not required"}</span></div>
-    <div><strong>Context</strong><span>{result.contextUsed?.length ? `${result.contextUsed.length} usable persistent context item(s); not treated as verified evidence.` : "No persistent context used."}</span></div>\n    <div><strong>Evidence</strong><span>{result.evidence.some(x=>x.kind==="retrieved"||x.kind==="verified")?`${result.evidence.filter(x=>x.kind==="retrieved"||x.kind==="verified").length} retrieved/verified evidence item(s).`:"User input only; no retrieved source is being treated as fact."}</span></div>
+    <div><strong>Context</strong><span>{result.contextUsed?.length ? `${result.contextUsed.length} usable persistent context item(s); not treated as verified evidence.` : "No persistent context used."}</span></div>
+    <div><strong>Evidence</strong><span>{result.evidence.some(x=>x.kind==="retrieved"||x.kind==="verified")?`${result.evidence.filter(x=>x.kind==="retrieved"||x.kind==="verified").length} retrieved/verified evidence item(s).`:"User input only; no retrieved source is being treated as fact."}</span></div>
     <div><strong>Execution</strong><span>{result.execution.length ? result.execution.map(x=>`${x.toolId}: ${x.state}`).join(" · ") : "No execution attempted."}</span></div>
    </div>
+   {result.actionDecision&&<div className="action-gate">
+    <div className="action-gate-heading"><strong>Action safety gate</strong><span>{result.actionDecision.action.label}</span></div>
+    <p>{result.actionDecision.state==="ready" ? "This action has passed the current authorization, confirmation and availability checks." : result.actionDecision.reason}</p>
+    <div className="action-gate-meta">
+      <span><strong>Authorization</strong>{result.actionDecision.action.authorizationRequired ? "Required" : "Not required"}</span>
+      <span><strong>Confirmation</strong>{result.actionDecision.confirmation.required ? (result.actionDecision.confirmation.confirmed ? "Received" : "Required") : "Not required"}</span>
+      <span><strong>Availability</strong>{result.actionDecision.action.availability==="available" ? "Connected" : "Not connected"}</span>
+    </div>
+    {result.actionDecision.confirmation.required&&!result.actionDecision.confirmation.confirmed&&<button className="secondary-button" type="button" disabled title="A confirmation cannot authorize an action or create a missing connection.">Confirm action</button>}
+    {result.actionDecision.confirmation.required&&!result.actionDecision.confirmation.confirmed&&<span className="action-gate-note">Confirmation is intentionally disabled until BUSIQ has a real authenticated actor and an authorized connected executor.</span>}
+   </div>}
    {result.verification.missingEvidence.length>0&&<div className="truth-note"><strong>Evidence required</strong><p>{result.verification.missingEvidence.join(" ")}</p></div>}
    <p className="next-action"><strong>Next:</strong> {result.answer.nextAction}</p>
    <details className="answer-details">
