@@ -7,6 +7,7 @@ import { routeCapabilities } from "./router";
 import type { IntelligencePipelineResult } from "./types";
 import { verifyEvidence } from "./verify";
 import { reasonFromEvidence } from "./reasoning";
+import { validateToolResult } from "./result-validation";
 
 export function runIntelligencePipeline(request: string): IntelligencePipelineResult {
   const normalized = request.trim().replace(/\s+/g, " ");
@@ -74,10 +75,11 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
     }
     return { toolId: result.toolId, state: result.state, reason: result.reason };
   });
-  const executionEvidence = execution.flatMap(result => result.state === "success" ? result.evidence : []);
+  const validatedExecution = execution.map(validateToolResult);
+  const executionEvidence = validatedExecution.flatMap(result => result.state === "success" ? result.evidence : []);
   const allEvidence = [...initialEvidence, ...executionEvidence];
-  const executionBlocked = execution.filter(result => result.state === "blocked");
-  const executionSucceeded = execution.length > 0 && executionBlocked.length === 0;
+  const executionBlocked = validatedExecution.filter(result => result.state === "blocked");
+  const executionSucceeded = validatedExecution.length > 0 && executionBlocked.length === 0;
   const verification = verifyEvidence(allEvidence, researchPlan, 0, executionSucceeded, normalized);
   const reasoning = reasonFromEvidence(allEvidence, verification.state, normalized);
 
