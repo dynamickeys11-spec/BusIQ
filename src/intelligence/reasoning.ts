@@ -1,4 +1,4 @@
-import type { EvidenceItem, ReasoningConclusion, ReasoningResult } from "./types";
+import type { EvidenceItem, ReasoningChain, ReasoningConclusion, ReasoningResult } from "./types";
 
 function supportedFact(item: EvidenceItem): ReasoningConclusion {
   return {
@@ -64,19 +64,61 @@ function multiEvidenceFinding(evidence: EvidenceItem[], request: string): Reason
   };
 }
 
+function requestsRecommendation(request: string): boolean {
+  return /\b(recommend|recommendation|what should (i|we)|should i|should we|which (option|one)|best option|best choice)\b/i.test(request);
+}
+
+function hasDecisionCriteria(request: string): boolean {
+  return /\b(based on|according to|criteria|priority|priorities|budget|cost|margin|profit|risk|deadline|goal|goals|constraint|constraints)\b/i.test(request);
+}
+
+function recommendationConclusion(finding: ReasoningConclusion): ReasoningConclusion {
+  return {
+    type: "RECOMMENDATION",
+    statement: "Use the verified finding as the evidence basis for the decision, applying the explicit decision criteria before taking action.",
+    evidenceIds: finding.evidenceIds,
+    dependsOn: ["finding-1"],
+    support: "supported",
+  };
+}
+
+function buildChains(conclusions: ReasoningConclusion[]): ReasoningChain[] {
+  return conclusions.map((conclusion, index) => {
+    const conclusionId = `${conclusion.type.toLowerCase()}-${index + 1}`;
+    const dependsOn = conclusion.dependsOn ?? [];
+    return { conclusionId, type: conclusion.type, evidenceIds: conclusion.evidenceIds, dependsOn };
+  });
+}
+
+function insufficientRecommendation(request: string): ReasoningConclusion {
+  const criteria = hasDecisionCriteria(request);
+  return {
+    type: "RECOMMENDATION",
+    statement: criteria
+      ? "A recommendation is requested, but the available evidence does not support a decision yet."
+      : "A recommendation is requested, but explicit decision criteria are missing. BUSIQ will not invent criteria or choose an option without them.",
+    evidenceIds: [],
+    support: "insufficient",
+  };
+}
+
 export function reasonFromEvidence(
   evidence: EvidenceItem[],
   verificationState: "passed" | "blocked",
   request: string,
 ): ReasoningResult {
   if (verificationState !== "passed") {
+    const recommendation = requestsRecommendation(request) ? insufficientRecommendation(request) : undefined;
+    const conclusions = recommendation ? [recommendation] : [];
     return {
       state: "insufficient",
-      conclusions: [],
+      conclusions,
       limitations: [
         "The available evidence is insufficient for a supported factual conclusion.",
         "BUSIQ will not convert missing or unverified information into a conclusion.",
+        ...(recommendation && !hasDecisionCriteria(request) ? ["Decision criteria are missing for a supported recommendation."] : []),
       ],
+      chains: buildChains(conclusions),
     };
   }
 
@@ -88,80 +130,116 @@ export function reasonFromEvidence(
   const inferred = evidence.filter(item => item.kind === "inferred");
 
   if (retrieved.length > 0 && unverifiedRetrieved.length > 0) {
+    const recommendation = requestsRecommendation(request) ? insufficientRecommendation(request) : undefined;
+    const conclusions = recommendation ? [recommendation] : [];
     return {
       state: "insufficient",
-      conclusions: [],
+      conclusions,
       limitations: [
         "Retrieved evidence is present, but at least one retrieved item lacks verified provenance.",
         "BUSIQ will not present unverified retrieved material as established fact.",
       ],
+      chains: buildChains(conclusions),
     };
   }
 
   if (verifiedRetrieved.length > 0 && directRetrieved.length === 0) {
+    const recommendation = requestsRecommendation(request) ? insufficientRecommendation(request) : undefined;
+    const conclusions = recommendation ? [recommendation] : [];
     return {
       state: "insufficient",
-      conclusions: [],
+      conclusions,
       limitations: [
         "Verified evidence is available, but none is directly relevant to the requested question.",
         "BUSIQ will not promote indirectly related evidence into a factual answer without a direct evidentiary basis.",
+        ...(recommendation ? ["A recommendation also requires directly relevant evidence."] : []),
       ],
+      chains: buildChains(conclusions),
     };
   }
 
   if (directRetrieved.length > 1) {
     const conflicts = detectConflicts(directRetrieved);
+    const facts = directRetrieved.map(supportedFact);
     if (conflicts.length > 0) {
+      const recommendation = requestsRecommendation(request) ? insufficientRecommendation(request) : undefined;
+      const conclusions = recommendation ? [...facts, recommendation] : facts;
       return {
         state: "insufficient",
-        conclusions: directRetrieved.map(supportedFact),
+        conclusions,
         limitations: [
           ...conflicts,
           "Conflicting evidence must be reconciled before BUSIQ derives a combined finding or recommendation.",
         ],
+        chains: buildChains(conclusions),
       };
     }
+    const finding = multiEvidenceFinding(directRetrieved, request);
+    const conclusions: ReasoningConclusion[] = [...facts, finding];
+    if (requestsRecommendation(request)) {
+      if (!hasDecisionCriteria(request)) {
+        conclusions.push(insufficientRecommendation(request));
+      } else {
+        conclusions.push(recommendationConclusion(finding));
+      }
+    }
     return {
-      state: "ready",
-      conclusions: [
-        ...directRetrieved.map(supportedFact),
-        multiEvidenceFinding(directRetrieved, request),
-      ],
+      state: conclusions.some(item => item.support === "insufficient") ? "insufficient" : "ready",
+      conclusions,
       limitations: [
         ...(indirectRetrieved.length ? ["Some verified evidence is indirectly relevant and was not promoted to a factual conclusion."] : []),
         ...(inferred.length ? ["Some available material is inferred rather than directly retrieved or verified."] : []),
+        ...(requestsRecommendation(request) && !hasDecisionCriteria(request) ? ["Decision criteria are missing for a supported recommendation."] : []),
       ],
+      chains: buildChains(conclusions),
     };
   }
 
   if (directRetrieved.length === 1) {
+    const fact = supportedFact(directRetrieved[0]);
+    const conclusions: ReasoningConclusion[] = [fact];
+    if (requestsRecommendation(request)) conclusions.push(insufficientRecommendation(request));
     return {
-      state: "ready",
-      conclusions: [supportedFact(directRetrieved[0])],
-      limitations: inferred.length
-        ? ["Some available material is inferred rather than directly retrieved or verified."]
-        : [],
+      state: requestsRecommendation(request) ? "insufficient" : "ready",
+      conclusions,
+      limitations: [
+        ...(inferred.length ? ["Some available material is inferred rather than directly retrieved or verified."] : []),
+        ...(requestsRecommendation(request) ? ["A supported recommendation requires sufficient evidence and explicit decision criteria."] : []),
+      ],
+      chains: buildChains(conclusions),
     };
   }
 
   if (inferred.length > 0) {
+    const inference = localInference(inferred);
+    const conclusions: ReasoningConclusion[] = [inference];
+    if (requestsRecommendation(request)) conclusions.push(insufficientRecommendation(request));
     return {
-      state: "ready",
-      conclusions: [localInference(inferred)],
+      state: requestsRecommendation(request) ? "insufficient" : "ready",
+      conclusions,
       limitations: [
         "This is an inference about BUSIQ's local execution, not a business or external-world fact.",
+        ...(requestsRecommendation(request) ? ["A local execution inference is not enough to support a business recommendation."] : []),
       ],
+      chains: buildChains(conclusions),
     };
   }
 
+  const inference: ReasoningConclusion = {
+    type: "INFERENCE",
+    statement: `BUSIQ can execute the requested local capability for: ${request}`,
+    evidenceIds: [],
+    support: "supported",
+  };
+  const conclusions: ReasoningConclusion[] = [inference];
+  if (requestsRecommendation(request)) conclusions.push(insufficientRecommendation(request));
   return {
-    state: "ready",
-    conclusions: [{
-      type: "INFERENCE",
-      statement: `BUSIQ can execute the requested local capability for: ${request}`,
-      evidenceIds: [],
-      support: "supported",
-    }],
-    limitations: ["No retrieved business or external evidence is available."],
+    state: requestsRecommendation(request) ? "insufficient" : "ready",
+    conclusions,
+    limitations: [
+      "No retrieved business or external evidence is available.",
+      ...(requestsRecommendation(request) ? ["A recommendation cannot be supported without relevant evidence and explicit criteria."] : []),
+    ],
+    chains: buildChains(conclusions),
   };
 }
