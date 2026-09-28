@@ -6,7 +6,10 @@ function scopeKey(scope: EvidenceItem["scope"]): string {
 
 function evidenceScopeIssues(evidence: EvidenceItem[]): string[] {
   const scoped = evidence.filter(item => item.scope);
-  if (scoped.length < 2) return [];
+  if (scoped.length < 2) return scoped.length === 1 && evidence.length > 1
+    ? ["Evidence items mix scoped and unscoped records and cannot be safely combined."]
+    : [];
+  if (scoped.length !== evidence.length) return ["Evidence items mix scoped and unscoped records and cannot be safely combined."];
   const keys = new Set(scoped.map(item => scopeKey(item.scope)));
   return keys.size > 1
     ? ["Evidence items have incompatible scopes and cannot be combined into one factual answer."]
