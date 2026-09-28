@@ -5,6 +5,7 @@ import { classifyEvidenceQuality, verifyEvidence } from "./verify";
 import { resolveIntent } from "../bie/intent";
 import { listCapabilities } from "./capabilities";
 import { routeCapabilities } from "./router";
+import { assessResearchEvidence, decideResearchStopping } from "./research-assessment";
 
 describe("BUSIQ intelligence pipeline", () => {
   it("blocks business questions that require connected business data", () => {
@@ -319,5 +320,51 @@ describe("research engine safeguards", () => {
       { id: "r1", kind: "retrieved", label: "Market trend", detail: "Growth increased", source: "Source A", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
     ]);
     expect(result.triangulated).toBe(false);
+  });
+});
+
+
+describe("research stopping rules", () => {
+  it("stops when evidence is sufficient and triangulated", () => {
+    const assessment = assessResearchEvidence([
+      { id: "r1", kind: "retrieved", label: "Market trend", detail: "Growth increased.", source: "Source A", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
+      { id: "r2", kind: "retrieved", label: "Demand", detail: "Demand increased.", source: "Source B", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
+    ]);
+    const decision = decideResearchStopping(assessment, 2);
+    expect(decision.stop).toBe(true);
+    expect(decision.reason).toBe("sufficient-evidence");
+  });
+
+  it("stops rather than synthesizing conflicting research", () => {
+    const assessment = assessResearchEvidence([
+      { id: "r1", kind: "retrieved", label: "Market trend", detail: "Growth increased.", source: "Source A", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
+      { id: "r2", kind: "retrieved", label: "Market trend", detail: "Growth decreased.", source: "Source B", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
+    ]);
+    const decision = decideResearchStopping(assessment, 2);
+    expect(decision.stop).toBe(true);
+    expect(decision.reason).toBe("conflict-detected");
+  });
+
+  it("stops when no evidence was retrieved", () => {
+    const decision = decideResearchStopping(assessResearchEvidence([]), 0);
+    expect(decision.stop).toBe(true);
+    expect(decision.reason).toBe("no-evidence");
+  });
+
+  it("continues when one clean source still needs corroboration", () => {
+    const assessment = assessResearchEvidence([
+      { id: "r1", kind: "retrieved", label: "Market trend", detail: "Growth increased.", source: "Source A", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
+    ]);
+    const decision = decideResearchStopping(assessment, 1, 5);
+    expect(decision.stop).toBe(false);
+  });
+
+  it("stops at the configured source limit without claiming sufficiency", () => {
+    const assessment = assessResearchEvidence([
+      { id: "r1", kind: "retrieved", label: "Market trend", detail: "Growth increased.", source: "Source A", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
+    ]);
+    const decision = decideResearchStopping(assessment, 5, 5);
+    expect(decision.stop).toBe(true);
+    expect(decision.reason).toBe("source-limit-reached");
   });
 });
