@@ -3,6 +3,9 @@ export type EvidenceKind = "user" | "retrieved" | "verified" | "inferred";
 export type CapabilityStatus = "available" | "unavailable";
 
 export type EvidenceQuality = "strong" | "limited" | "unknown";
+export type EvidenceDiagnosticCategory = "authority" | "freshness" | "verification" | "relevance" | "scope" | "conflict" | "sufficiency";
+export type EvidenceSufficiency = "not-required" | "insufficient" | "sufficient";
+export type EvidenceDiagnostic = { evidenceId?: string; category: EvidenceDiagnosticCategory; message: string; };
 
 export type EvidenceScope = {
   businessId?: string;
@@ -40,12 +43,15 @@ export type ReasoningConclusion = {
   type: ReasoningType;
   statement: string;
   evidenceIds: string[];
+  dependsOn?: string[];
   support: "supported" | "insufficient";
 };
+export type ReasoningChain = { conclusionId: string; type: ReasoningType; evidenceIds: string[]; dependsOn: string[]; };
 export type ReasoningResult = {
   state: "ready" | "insufficient";
   conclusions: ReasoningConclusion[];
   limitations: string[];
+  chains?: ReasoningChain[];
 };
 
 export type IntelligencePipelineResult = {
@@ -55,7 +61,7 @@ export type IntelligencePipelineResult = {
   routing: RoutingDecision[];
   execution: ExecutionRecord[];
   evidence: EvidenceItem[];
-  verification: { state: "not-run" | "passed" | "blocked"; checks: string[]; missingEvidence: string[]; };
+  verification: { state: "not-run" | "passed" | "blocked"; checks: string[]; missingEvidence: string[]; diagnostics?: EvidenceDiagnostic[]; sufficiency?: EvidenceSufficiency; };
   reasoning: ReasoningResult;
   answer: { type: "clarification" | "execution-plan" | "blocked"; headline: string; detail: string; nextAction: string; };
   trace: string[];
