@@ -66,7 +66,7 @@ export default function App(){
    <nav aria-label="Primary navigation">{experiences.map(ex=><button key={ex} type="button" className={active===ex?"nav-item active":"nav-item"} aria-current={active===ex?"page":undefined} onClick={()=>setActive(ex)}>{ex}</button>)}</nav>
    <span className={online?"connection-state":"connection-state offline"} aria-live="polite">{online?"Online":"Offline"}</span>
   </header>
-  <section className="workspace">{!online&&<div className="offline-banner" role="status"><strong>Offline mode.</strong><span>Local work and planning remain available. Connected business data, external research and cloud actions are unavailable.</span></div>
+  <section className="workspace">{!online&&<div className="offline-banner" role="status"><strong>Offline mode.</strong><span>Local work and planning remain available. Connected business data, external research and cloud actions are unavailable.</span></div>}
    {active==="Workspace"&&<>
     <div className="workspace-heading"><div><div className="eyebrow">BUSIQ · WORKSPACE</div><h1>{profile.name?"Good morning. "+profile.name+".":"Business clarity, without the clutter."}</h1><p className="lede">{profile.name?"What would you like to understand or accomplish?":"Set up your business once, then use BUSIQ to understand, decide and act."}</p></div></div>
     <form className="ask-surface" onSubmit={e=>{e.preventDefault();submitRequest()}}>
