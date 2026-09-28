@@ -9,3 +9,11 @@
 .pipeline-trace{display:grid;gap:6px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
 .next-action{margin-bottom:0}
 @media(max-width:800px){.pipeline-grid{grid-template-columns:1fr}}
+
+.answer-details{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+.answer-details summary{cursor:pointer;font-weight:700;color:var(--midnight)}
+.answer-detail-body{display:grid;gap:14px;margin-top:14px;color:var(--muted);font-size:13px;line-height:1.55}
+.answer-detail-body p{margin:0}
+.answer-detail-body ul{margin:7px 0 0;padding-left:20px}
+.answer-detail-body strong{display:block;color:var(--midnight)}
+.answer-detail-body span{display:block;margin-top:5px}
