@@ -321,6 +321,12 @@ describe("research engine safeguards", () => {
     expect(query.requiredSourceClasses).toContain("external-research");
   });
 
+  it("surfaces a no-evidence stopping decision when external research is disconnected", () => {
+    const result = runIntelligencePipeline("What are the latest market trends?");
+    expect(result.researchStopping?.stop).toBe(true);
+    expect(result.researchStopping?.reason).toBe("no-evidence");
+  });
+
   it("requires more than one source for triangulation", async () => {
     const { assessResearchEvidence } = await import("./research-assessment");
     const result = assessResearchEvidence([
