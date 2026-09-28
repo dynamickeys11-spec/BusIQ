@@ -23,3 +23,6 @@ export type { AuthenticationState, SessionIdentity, BusinessMembership, Authoriz
 
 export { consumeUsage, defaultUsagePolicy } from "./usage";
 export type { UsagePolicy, UsageState } from "./usage";
+
+export { validateRequestBody } from "./api-validation";
+export type { ApiValidationResult } from "./api-validation";
