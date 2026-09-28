@@ -20,3 +20,6 @@ export type { SecuritySubject, SecurityResource, SecurityDecision, ToolPermissio
 
 export { requireAuthenticated, authorizeBusinessMembership } from "./auth";
 export type { AuthenticationState, SessionIdentity, BusinessMembership, AuthorizationRequest, AuthorizationResult } from "./auth";
+
+export { consumeUsage, defaultUsagePolicy } from "./usage";
+export type { UsagePolicy, UsageState } from "./usage";
