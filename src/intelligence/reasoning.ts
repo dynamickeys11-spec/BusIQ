@@ -83,6 +83,8 @@ export function reasonFromEvidence(
   const retrieved = evidence.filter(item => item.kind === "retrieved" || item.kind === "verified");
   const verifiedRetrieved = retrieved.filter(hasVerifiedProvenance);
   const unverifiedRetrieved = retrieved.filter(item => !hasVerifiedProvenance(item));
+  const directRetrieved = verifiedRetrieved.filter(item => item.relevance === "direct");
+  const indirectRetrieved = verifiedRetrieved.filter(item => item.relevance === "indirect");
   const inferred = evidence.filter(item => item.kind === "inferred");
 
   if (retrieved.length > 0 && unverifiedRetrieved.length > 0) {
@@ -96,12 +98,23 @@ export function reasonFromEvidence(
     };
   }
 
-  if (verifiedRetrieved.length > 1) {
-    const conflicts = detectConflicts(verifiedRetrieved);
+  if (verifiedRetrieved.length > 0 && directRetrieved.length === 0) {
+    return {
+      state: "insufficient",
+      conclusions: [],
+      limitations: [
+        "Verified evidence is available, but none is directly relevant to the requested question.",
+        "BUSIQ will not promote indirectly related evidence into a factual answer without a direct evidentiary basis.",
+      ],
+    };
+  }
+
+  if (directRetrieved.length > 1) {
+    const conflicts = detectConflicts(directRetrieved);
     if (conflicts.length > 0) {
       return {
         state: "insufficient",
-        conclusions: verifiedRetrieved.map(supportedFact),
+        conclusions: directRetrieved.map(supportedFact),
         limitations: [
           ...conflicts,
           "Conflicting evidence must be reconciled before BUSIQ derives a combined finding or recommendation.",
@@ -111,19 +124,20 @@ export function reasonFromEvidence(
     return {
       state: "ready",
       conclusions: [
-        ...verifiedRetrieved.map(supportedFact),
-        multiEvidenceFinding(verifiedRetrieved, request),
+        ...directRetrieved.map(supportedFact),
+        multiEvidenceFinding(directRetrieved, request),
       ],
-      limitations: inferred.length
-        ? ["Some available material is inferred rather than directly retrieved or verified."]
-        : [],
+      limitations: [
+        ...(indirectRetrieved.length ? ["Some verified evidence is indirectly relevant and was not promoted to a factual conclusion."] : []),
+        ...(inferred.length ? ["Some available material is inferred rather than directly retrieved or verified."] : []),
+      ],
     };
   }
 
-  if (verifiedRetrieved.length === 1) {
+  if (directRetrieved.length === 1) {
     return {
       state: "ready",
-      conclusions: [supportedFact(verifiedRetrieved[0])],
+      conclusions: [supportedFact(directRetrieved[0])],
       limitations: inferred.length
         ? ["Some available material is inferred rather than directly retrieved or verified."]
         : [],
