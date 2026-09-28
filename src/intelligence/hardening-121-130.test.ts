@@ -54,7 +54,7 @@ describe("BUSIQ intelligence hardening: roadmap 121-130", () => {
     expect(resolveIntent("What happened to sales last month?").context?.time).toBe("last month");
     const current = verifyEvidence([
       { id:"e1", kind:"retrieved", label:"Sales", detail:"Sales increased.", source:"A", authority:"connected-source", freshness:"dated", verification:"verified", relevance:"direct", evidenceDate:"2026-08-01" },
-    ], [{ id:"r1", purpose:"retrieve sales", status:"completed", evidenceRequired:true, sourceClass:"business-data" }], 0, true, "What are sales currently?");
+    ], [{ id:"r1", purpose:"retrieve sales", status:"required", evidenceRequired:true, sourceClass:"business-data" }], 0, true, "What are sales currently?");
     expect(current.state).toBe("blocked");
   });
 
@@ -77,7 +77,7 @@ describe("BUSIQ intelligence hardening: roadmap 121-130", () => {
   it("128 — rejects malformed answer presentation but accepts a complete blocked answer", () => {
     const result = {
       status: "blocked" as const,
-      answer: { headline: "", detail: "", nextAction: "", evidence: ["missing"] },
+      answer: { type: "blocked", headline: "", detail: "", nextAction: "", evidence: ["missing"] },
       evidence: [],
       reasoning: [],
     };
@@ -85,7 +85,7 @@ describe("BUSIQ intelligence hardening: roadmap 121-130", () => {
 
     const valid = {
       status: "blocked" as const,
-      answer: { headline: "BUSIQ cannot access that data yet.", detail: "The required connector is not connected.", nextAction: "Connect the required business system before retrying." },
+      answer: { type: "blocked", headline: "BUSIQ cannot access that data yet.", detail: "The required connector is not connected.", nextAction: "Connect the required business system before retrying." },
       evidence: [],
       reasoning: [],
     };
