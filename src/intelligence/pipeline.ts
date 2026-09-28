@@ -9,6 +9,7 @@ import { reasonFromEvidence } from "./reasoning";
 import { validateToolResult } from "./result-validation";
 import { assessResearchEvidence, decideResearchStopping } from "./research-assessment";
 import { validateAnswerQuality } from "./answer-quality";
+import { buildActionDecision, getActionForKind, resolveActionRequest } from "./actions";
 import type { IntelligencePipelineResult } from "./types";
 
 function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelineResult {
@@ -21,6 +22,9 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
   const ambiguity = detectAmbiguity(normalized, intent);
   const capabilities = describeCapabilities(intent.requiredCapabilities, intent.needsBusinessData, intent.needsExternalResearch);
   const routing = routeCapabilities(intent);
+  const action = resolveActionRequest(normalized);
+  const actionDefinition = action ? getActionForKind(action.kind) : undefined;
+  const actionDecision = actionDefinition ? buildActionDecision(actionDefinition) : undefined;
   const researchPlan = buildResearchPlan(intent);
   const initialEvidence = normalized
     ? [{ id: "request", kind: "user" as const, label: "User request", detail: normalized, source: "User input" }]
@@ -28,6 +32,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
   const initialResearchAssessment = intent.needsExternalResearch ? assessResearchEvidence(initialEvidence) : undefined;
   const initialResearchStopping = initialResearchAssessment ? decideResearchStopping(initialResearchAssessment, 0) : undefined;
   const unavailable = capabilities.filter(item => item.status === "unavailable");
+  const actionBlocked = actionDecision?.state === "blocked" && actionDecision.action.availability === "unavailable";
   const blockedRouting = routing.filter(item => item.state === "blocked");
   const base = {
     request: normalized, intent, ambiguity, capabilities, researchPlan, routing,
@@ -53,7 +58,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
     });
   }
 
-  if (unavailable.length || blockedRouting.length) {
+  if (unavailable.length || blockedRouting.length || actionBlocked) {
     return finalizeResult({
       ...base,
       status: "needs_connection",
@@ -66,7 +71,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       answer: {
         type: "blocked",
         headline: "The request is understood, but the required execution path is not connected yet.",
-        detail: [...unavailable.map(item => item.reason), ...blockedRouting.map(item => item.reason)].join(" ") + " BUSIQ will not invent the missing capability or data.",
+        detail: [...unavailable.map(item => item.reason), ...blockedRouting.map(item => item.reason), ...(actionBlocked && actionDecision ? [actionDecision.reason] : [])].join(" ") + " BUSIQ will not invent the missing capability, connection, or action result.",
         nextAction: "Connect the required source or implement/connect the required execution capability.",
       },
       trace: ["Normalize request", "Resolve required capabilities", "Route to suitable tools", "Plan research", "Verify available evidence", "Stop before unsupported execution"],
