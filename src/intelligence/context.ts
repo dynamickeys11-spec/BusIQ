@@ -84,3 +84,31 @@ export function mergeContext(
   for (const entry of incoming) byKey.set(`${entry.kind}:${entry.key}`, entry);
   return [...byKey.values()];
 }
+
+
+export function flattenContext(state: ContextState): ContextEntry[] {
+  return [
+    ...state.business,
+    ...state.user,
+    ...state.conversation,
+    ...state.work,
+    ...state.decisions,
+    ...state.knowledge,
+    ...state.provenance,
+  ];
+}
+
+export function selectRelevantContext(
+  entries: ContextEntry[],
+  request: string,
+  now = new Date(),
+): ContextEntry[] {
+  const usable = filterUsableContext(entries, now);
+  const normalized = request.toLowerCase();
+  const tokens = normalized.split(/[^a-z0-9]+/i).filter(token => token.length >= 3);
+  return usable.filter(entry => {
+    if (entry.kind === "business" || entry.kind === "user") return true;
+    const haystack = `${entry.key} ${entry.value}`.toLowerCase();
+    return tokens.some(token => haystack.includes(token));
+  });
+}
