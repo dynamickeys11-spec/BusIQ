@@ -4,13 +4,14 @@ import { describeCapabilities } from "./capabilities";
 import { buildResearchPlan } from "./research";
 import { executeTool } from "./execution";
 import { routeCapabilities } from "./router";
-import type { IntelligencePipelineResult } from "./types";
 import { verifyEvidence } from "./verify";
 import { reasonFromEvidence } from "./reasoning";
 import { validateToolResult } from "./result-validation";
 import { assessResearchEvidence, decideResearchStopping } from "./research-assessment";
+import { validateAnswerQuality } from "./answer-quality";
+import type { IntelligencePipelineResult } from "./types";
 
-export function runIntelligencePipeline(request: string): IntelligencePipelineResult {
+function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelineResult {\n  return { ...result, answerQuality: validateAnswerQuality(result) };\n}\n\nexport function runIntelligencePipeline(request: string): IntelligencePipelineResult {
   const normalized = request.trim().replace(/\s+/g, " ");
   const intent = resolveIntent(normalized);
   const ambiguity = detectAmbiguity(normalized, intent);
