@@ -114,7 +114,7 @@ function PipelineView({result}:{result:IntelligencePipelineResult}){
     <summary>Why this answer?</summary>
     <div className="answer-detail-body">
       <p>{result.answer.detail}</p>
-      {result.answer.evidence?.length ? <div><strong>Evidence used</strong><ul>{result.answer.evidence.map(id=><li key={id}>{id}</li>)}</ul></div> : null}
+      {result.answer.evidence?.length ? <div><strong>Evidence used</strong><ul>{result.answer.evidence.map(id=>{const item=result.evidence.find(e=>e.id===id);return <li key={id}><strong>{item?.label??id}</strong><span>{item?.source??"Source not recorded"} · {item?.authority??"authority unknown"} · {item?.verification??"verification unknown"} · {item?.freshness??"freshness unknown"}</span></li>})}</ul></div> : null}
       {result.answer.limitations?.length ? <div><strong>Limitations</strong><ul>{result.answer.limitations.map(item=><li key={item}>{item}</li>)}</ul></div> : null}
       <div><strong>Quality gate</strong><span>{result.answerQuality?.passed ? "Passed" : "Blocked: "+(result.answerQuality?.issues.join(", ")||"unknown issue")}</span></div>
       <div><strong>Trace</strong><span>{result.trace.join(" → ")}</span></div>
