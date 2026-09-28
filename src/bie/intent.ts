@@ -40,12 +40,13 @@ export function resolveIntent(input:string):ResolvedIntent{
 
   const ranked=candidates(request);
   const matched=ranked[0] ? rules.find(r=>r.kind===ranked[0].kind) : undefined;
+  const domainCapabilities=businessObjects.test(request) ? (request.match(/\\bsales\\b/i) ? ["sales"] : []) : [];
   const businessAction=/\b(show|find|list|analy[sz]|investigat|compare|monitor|track|why|how is|how are|check|review)\b/i.test(request);
   const needsBusinessData=currentBusiness.test(request)&&(businessObjects.test(request)||businessAction);
   const needsExternalResearch=externalObjects.test(request)&&(/\b(current|latest|research|find|compare|benchmark|market|competitor|industry|regulat|trend)\b/i.test(request));
   const explicitMultiIntent=/\b(and then|then|after that|and)\b/i.test(request) && ranked.length>1;
   const secondaryIntents=explicitMultiIntent ? ranked.slice(1,3).map(c=>c.kind as IntentKind) : [];
 
-  if(!matched)return{kind:"unknown",label:"Understand the request before choosing a capability",normalizedRequest:request,requiredCapabilities:["intent-resolution"],needsBusinessData,needsExternalResearch,ambiguity:"none",candidates:ranked,context,secondaryIntents:[]};
-  return{kind:matched.kind,label:matched.label,normalizedRequest:request,requiredCapabilities:matched.capabilities,needsBusinessData,needsExternalResearch,ambiguity:secondaryIntents.length?"material":"none",candidates:ranked,context,secondaryIntents};
+  if(!matched)return{kind:"unknown",label:"Understand the request before choosing a capability",normalizedRequest:request,requiredCapabilities:["intent-resolution",...domainCapabilities],needsBusinessData,needsExternalResearch,ambiguity:"none",candidates:ranked,context,secondaryIntents:[]};
+  return{kind:matched.kind,label:matched.label,normalizedRequest:request,requiredCapabilities:[...new Set([...matched.capabilities,...domainCapabilities])],needsBusinessData,needsExternalResearch,ambiguity:secondaryIntents.length?"material":"none",candidates:ranked,context,secondaryIntents};
 }
