@@ -37,7 +37,7 @@ export function classifyEvidenceQuality(item: EvidenceItem): "strong" | "limited
     else if (timeContext === "current" && item.freshness !== "current") issues.push({ evidenceId: item.id, category: "freshness", message: `Evidence ${item.id} is not current enough for the requested time context.` });
     else if (timeContext === "historical" && !item.evidenceDate) issues.push({ evidenceId: item.id, category: "freshness", message: `Evidence ${item.id} lacks a date needed for the historical time context.` });
     if (item.verification !== "verified") issues.push({ evidenceId: item.id, category: "verification", message: `Evidence ${item.id} is not verified.` });
-    if (quality === "unknown" || item.relevance === "unknown" || !item.relevance) issues.push({ evidenceId: item.id, category: "relevance", message: `Evidence ${item.id} has unknown relevance.` });
+    if (item.relevance === "unknown" || !item.relevance) issues.push({ evidenceId: item.id, category: "relevance", message: `Evidence ${item.id} has unknown relevance.` });
   }
   return issues;
 }
