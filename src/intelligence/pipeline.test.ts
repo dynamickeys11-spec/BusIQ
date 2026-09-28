@@ -48,6 +48,24 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.researchPlan.some(step => step.id === "no-research" && step.status === "not-required" && !step.evidenceRequired)).toBe(true);
   });
 
+  it("resolves the core business domains without exposing internal architecture", () => {
+    const cases = [
+      ["Show my customers", "customers"],
+      ["Show my revenue", "money"],
+      ["Show my expenses", "expenses"],
+      ["Show my products", "products"],
+      ["Check my inventory", "inventory"],
+      ["Show my suppliers", "suppliers"],
+      ["How are my people doing?", "people"],
+      ["How are operations doing?", "operations"],
+      ["How is my marketing doing?", "marketing"],
+      ["Show my projects", "projects"],
+    ] as const;
+    for (const [request, capability] of cases) {
+      expect(resolveIntent(request).requiredCapabilities).toContain(capability);
+    }
+  });
+
   it("routes sales requests through the sales capability foundation", () => {
     const result = runIntelligencePipeline("Why are my sales down?");
     expect(result.intent.requiredCapabilities).toContain("sales");
