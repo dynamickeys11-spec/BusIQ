@@ -9,3 +9,6 @@ export { listActions, getAction, getActionForKind, resolveActionRequest, buildAc
 export { executeActionSafely } from "./action-execution";
 export type { ActionDefinition, ActionRequest, ActionDecision, ActionAuthorization, ActionConfirmation } from "./actions";
 export type { ActionAuditEvent, ActionAuditState } from "./action-audit";
+
+export { contextFreshness, isContextUsable, filterUsableContext, createContextEntry, rememberDecision, rememberProvenance, mergeContext } from "./context";
+export type { ContextKind, ContextFreshness, ContextEntry, ContextState } from "./context";
