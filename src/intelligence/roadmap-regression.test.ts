@@ -41,15 +41,16 @@ describe("BUSIQ roadmap regression coverage", () => {
   it("covers the complete deterministic pipeline from request to answer", () => {
     const result = runIntelligencePipeline("Create a business plan");
     expect(result.trace).toEqual(expect.arrayContaining([
-      "intent-resolution",
-      "ambiguity-check",
-      "capability-resolution",
-      "tool-routing",
-      "research-planning",
-      "evidence-collection",
-      "verification",
-      "reasoning",
-      "answer",
+      "Normalize request",
+      "Resolve intent",
+      "Load usable persistent context",
+      "Check material ambiguity",
+      "Resolve capabilities",
+      "Route to suitable tools",
+      "Plan research",
+      "Execute available tools",
+      "Verify execution evidence",
+      "Return verified execution result",
     ]));
     expect(result.status).toBe("ready");
     expect(result.answer.nextAction).toBeTruthy();
