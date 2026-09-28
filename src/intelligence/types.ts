@@ -56,6 +56,17 @@ export type ReasoningResult = {
   chains?: ReasoningChain[];
 };
 
+export type AnswerType = "clarification" | "execution-plan" | "blocked";
+export type AnswerPresentation = {
+  type: AnswerType;
+  headline: string;
+  detail: string;
+  nextAction: string;
+  why?: string;
+  evidence?: string[];
+  limitations?: string[];
+};
+
 export type IntelligencePipelineResult = {
   request: string; status: PipelineStatus;
   intent: ReturnType<typeof import("../bie/intent").resolveIntent>;
@@ -67,6 +78,6 @@ export type IntelligencePipelineResult = {
   evidence: EvidenceItem[];
   verification: { state: "not-run" | "passed" | "blocked"; checks: string[]; missingEvidence: string[]; diagnostics?: EvidenceDiagnostic[]; sufficiency?: EvidenceSufficiency; };
   reasoning: ReasoningResult;
-  answer: { type: "clarification" | "execution-plan" | "blocked"; headline: string; detail: string; nextAction: string; };
+  answer: AnswerPresentation;
   trace: string[];
 };
