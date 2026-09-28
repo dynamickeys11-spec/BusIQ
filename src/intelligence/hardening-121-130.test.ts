@@ -6,6 +6,7 @@ import { assessResearchEvidence, decideResearchStopping } from "./research-asses
 import { routeCapabilities } from "./router";
 import { getTool, listTools } from "./tools";
 import { validateAnswerQuality } from "./answer-quality";
+import type { ReasoningResult } from "./types";
 import { buildActionDecision, getActionForKind } from "./actions";
 import { authorizeBusinessMembership, requireAuthenticated } from "./auth";
 import { authorizeResource, validateTruthfulnessClaim } from "./security";
@@ -79,7 +80,7 @@ describe("BUSIQ intelligence hardening: roadmap 121-130", () => {
       status: "blocked" as const,
       answer: { type: "blocked" as const, headline: "", detail: "", nextAction: "", evidence: ["missing"] },
       evidence: [],
-      reasoning: [],
+      reasoning: { state: "insufficient", conclusions: [], limitations: [] } as ReasoningResult,
     };
     expect(validateAnswerQuality(result).passed).toBe(false);
 
