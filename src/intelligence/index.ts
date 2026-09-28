@@ -9,6 +9,7 @@ export type { ToolDescriptor, ToolExecutionRequest, ToolExecutionResult } from "
 export { listActions, getAction, getActionForKind, resolveActionRequest, buildActionDecision } from "./actions";
 export { executeActionSafely } from "./action-execution";
 export type { ActionDefinition, ActionRequest, ActionDecision, ActionAuthorization, ActionConfirmation } from "./actions";
+export { summarizeActionAudit } from "./action-audit";
 export type { ActionAuditEvent, ActionAuditState } from "./action-audit";
 
 export { contextFreshness, isContextUsable, filterUsableContext, createContextEntry, rememberDecision, rememberProvenance, mergeContext, flattenContext, selectRelevantContext } from "./context";
