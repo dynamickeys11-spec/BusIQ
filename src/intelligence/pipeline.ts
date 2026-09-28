@@ -8,6 +8,7 @@ import type { IntelligencePipelineResult } from "./types";
 import { verifyEvidence } from "./verify";
 import { reasonFromEvidence } from "./reasoning";
 import { validateToolResult } from "./result-validation";
+import { assessResearchEvidence, decideResearchStopping } from "./research-assessment";
 
 export function runIntelligencePipeline(request: string): IntelligencePipelineResult {
   const normalized = request.trim().replace(/\s+/g, " ");
@@ -19,6 +20,8 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
   const initialEvidence = normalized
     ? [{ id: "request", kind: "user" as const, label: "User request", detail: normalized, source: "User input" }]
     : [];
+  const initialResearchAssessment = intent.needsExternalResearch ? assessResearchEvidence(initialEvidence) : undefined;
+  const initialResearchStopping = initialResearchAssessment ? decideResearchStopping(initialResearchAssessment, 0) : undefined;
   const unavailable = capabilities.filter(item => item.status === "unavailable");
   const blockedRouting = routing.filter(item => item.state === "blocked");
   const base = {
@@ -81,6 +84,8 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
   const executionBlocked = validatedExecution.filter(result => result.state === "blocked");
   const executionSucceeded = validatedExecution.length > 0 && executionBlocked.length === 0;
   const verification = verifyEvidence(allEvidence, researchPlan, 0, executionSucceeded, normalized);
+  const researchAssessment = intent.needsExternalResearch ? assessResearchEvidence(allEvidence) : undefined;
+  const researchStopping = researchAssessment ? decideResearchStopping(researchAssessment, new Set(allEvidence.filter(item => item.kind === "retrieved" || item.kind === "verified").map(item => item.source)).size) : undefined;
   const reasoning = reasonFromEvidence(allEvidence, verification.state, normalized);
 
   if (executionBlocked.length) {
@@ -90,6 +95,8 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       execution: executionRecords,
       evidence: allEvidence,
       verification,
+      researchAssessment,
+      researchStopping,
       reasoning,
       answer: {
         type: "blocked",
@@ -109,6 +116,8 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
     execution: executionRecords,
     evidence: allEvidence,
     verification,
+    researchAssessment,
+    researchStopping,
     reasoning,
     answer: {
       type: "execution-plan",
