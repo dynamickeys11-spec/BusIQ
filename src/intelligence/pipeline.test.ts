@@ -48,6 +48,13 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.researchPlan.some(step => step.id === "no-research" && step.status === "not-required" && !step.evidenceRequired)).toBe(true);
   });
 
+  it("routes sales requests through the sales capability foundation", () => {
+    const result = runIntelligencePipeline("Why are my sales down?");
+    expect(result.intent.requiredCapabilities).toContain("sales");
+    expect(result.capabilities.some(item => item.id === "sales" && item.status === "unavailable")).toBe(true);
+    expect(result.routing.some(item => item.capabilityId === "sales" && item.state === "blocked")).toBe(true);
+  });
+
   it("blocks retrieval of current business expenses", () => {
     const result = runIntelligencePipeline("Show my expenses");
     expect(result.intent.kind).toBe("retrieve");
