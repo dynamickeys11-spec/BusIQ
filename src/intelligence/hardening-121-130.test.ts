@@ -88,7 +88,7 @@ describe("BUSIQ intelligence hardening: roadmap 121-130", () => {
       status: "blocked" as const,
       answer: { type: "blocked" as const, headline: "BUSIQ cannot access that data yet.", detail: "The required connector is not connected.", nextAction: "Connect the required business system before retrying." },
       evidence: [],
-      reasoning: [],
+      reasoning: { state: "insufficient", conclusions: [], limitations: [] } as ReasoningResult,
     };
     expect(validateAnswerQuality(valid).passed).toBe(true);
   });
