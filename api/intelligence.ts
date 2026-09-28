@@ -1,6 +1,9 @@
 import { runIntelligencePipeline } from "../src/intelligence";
 
 const MAX_REQUEST_CHARS = 4000;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 30;
+const rateBuckets = new Map<string, { startedAt: number; count: number }>();
 
 export default async function handler(request: Request): Promise<Response> {
   const requestId = crypto.randomUUID();
