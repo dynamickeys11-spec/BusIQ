@@ -13,6 +13,7 @@ const registry: CapabilityDescriptor[] = [
   { id:"business-context", label:"Business context", purpose:"Resolve the business and local context needed for execution.", suitableTools:["local-context"], status:"available" },
   { id:"planning", label:"Planning", purpose:"Create a deterministic plan structure without inventing facts.", suitableTools:["local-plan-builder"], status:"available" },
   { id:"business-data-retrieval", label:"Business data retrieval", purpose:"Retrieve connected business records.", suitableTools:["business-data-connector"], status:"unavailable" },
+  { id:"sales", label:"Sales", purpose:"Retrieve and work with connected sales records and sales performance evidence.", suitableTools:["business-data-connector"], status:"unavailable" },
   { id:"business-analysis", label:"Business analysis", purpose:"Analyze connected business records.", suitableTools:["business-analysis-tool"], status:"unavailable" },
   { id:"comparison", label:"Comparison", purpose:"Compare verified entities or options against explicit criteria.", suitableTools:["comparison-tool"], status:"unavailable" },
   { id:"evidence-review", label:"Evidence review", purpose:"Review, validate and reconcile evidence.", suitableTools:["evidence-review-tool"], status:"unavailable" },
