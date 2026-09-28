@@ -13,8 +13,8 @@ describe("pipeline persistent context", () => {
     const result = runIntelligencePipeline("Create a business plan", { context, now });
     expect(result.status).toBe("ready");
     expect(result.contextUsed?.map(item => item.key)).toEqual(["name", "sales-note"]);
-    expect(result.evidence).toHaveLength(1);
     expect(result.evidence[0].kind).toBe("user");
+    expect(result.evidence.some(item => item.detail.includes("Weekend sales are usually stronger."))).toBe(false);
   });
 
   it("excludes expired persistent context", () => {
