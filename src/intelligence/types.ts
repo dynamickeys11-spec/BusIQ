@@ -68,6 +68,7 @@ export type AnswerPresentation = {
 };
 
 export type IntelligencePipelineResult = {
+  contextUsed?: import("./context").ContextEntry[];
   action?: import("./actions").ActionRequest;
   actionDecision?: import("./actions").ActionDecision;
   request: string; status: PipelineStatus;
