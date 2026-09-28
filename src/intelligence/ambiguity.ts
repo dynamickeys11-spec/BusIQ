@@ -5,11 +5,10 @@ export function detectAmbiguity(request: string, intent: ResolvedIntent): Ambigu
   const words = request.trim().split(/\s+/).filter(Boolean);
   if (!request.trim()) return [{ field: "goal", reason: "No request was supplied.", question: "What would you like to understand or accomplish?" }];
   if (intent.kind === "unknown" && !intent.needsExternalResearch && !intent.needsBusinessData) {
-    return [{
-      field: "goal",
-      reason: "BUSIQ cannot reliably determine the requested outcome from the wording provided.",
-      question: "What would you like BUSIQ to understand, find, compare, plan, create, or explain?"
-    }];
+    return [{ field: "goal", reason: "BUSIQ cannot reliably determine the requested outcome from the wording provided.", question: "What would you like BUSIQ to understand, find, compare, plan, create, or explain?" }];
+  }
+  if (intent.secondaryIntents?.length) {
+    return [{ field: "goal", reason: `The request contains multiple distinct goals: ${[intent.kind, ...intent.secondaryIntents].join(", ")}.`, question: "Which outcome should BUSIQ handle first?" }];
   }
   if (words.length < 3 && intent.kind !== "explain") {
     return [{ field: "goal", reason: "The request is too short to determine the intended outcome reliably.", question: "What exactly would you like BUSIQ to do?" }];
