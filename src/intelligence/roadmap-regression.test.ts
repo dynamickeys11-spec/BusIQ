@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { resolveIntent } from "../bie/intent";
 import { assessResearchEvidence, decideResearchStopping } from "./research-assessment";
 import { routeCapabilities } from "./router";
-import { listCapabilities } from "./capabilities";
 import { runIntelligencePipeline } from "./pipeline";
 import { validateAnswerQuality } from "./answer-quality";
 
@@ -19,8 +18,7 @@ describe("BUSIQ roadmap regression coverage", () => {
   });
 
   it("routes unavailable capabilities instead of silently substituting a tool", () => {
-    const capabilities = listCapabilities();
-    const routed = routeCapabilities(resolveIntent("Show my inventory"), capabilities);
+    const routed = routeCapabilities(resolveIntent("Show my inventory"));
     expect(routed.some(item => item.capabilityId === "inventory" && item.state === "blocked")).toBe(true);
   });
 
@@ -28,9 +26,9 @@ describe("BUSIQ roadmap regression coverage", () => {
     const assessment = assessResearchEvidence([
       { id:"a",kind:"retrieved",label:"Sales",detail:"Sales increased 8%.",source:"A",authority:"external-source",freshness:"current",verification:"verified",relevance:"direct" },
       { id:"b",kind:"retrieved",label:"Sales",detail:"Sales decreased 3%.",source:"B",authority:"external-source",freshness:"current",verification:"verified",relevance:"direct" },
-    ], 2);
-    expect(assessment.conflicts).toBe(true);
-    expect(decideResearchStopping(assessment, 2)).toBe("conflict-detected");
+    ]);
+    expect(assessment.conflicts.length).toBeGreaterThan(0);
+    expect(decideResearchStopping(assessment, 2).reason).toBe("conflict-detected");
   });
 
   it("does not accept unsupported success claims", () => {
