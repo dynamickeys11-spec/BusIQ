@@ -61,6 +61,8 @@ export type IntelligencePipelineResult = {
   intent: ReturnType<typeof import("../bie/intent").resolveIntent>;
   ambiguity: AmbiguityIssue[]; capabilities: CapabilityRequirement[]; researchPlan: ResearchStep[];
   routing: RoutingDecision[];
+  researchAssessment?: import("./research-assessment").ResearchAssessment;
+  researchStopping?: import("./research-assessment").ResearchStoppingDecision;
   execution: ExecutionRecord[];
   evidence: EvidenceItem[];
   verification: { state: "not-run" | "passed" | "blocked"; checks: string[]; missingEvidence: string[]; diagnostics?: EvidenceDiagnostic[]; sufficiency?: EvidenceSufficiency; };
