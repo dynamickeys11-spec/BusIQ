@@ -8,6 +8,13 @@ import { routeCapabilities } from "./router";
 import { assessResearchEvidence, decideResearchStopping } from "./research-assessment";
 
 describe("BUSIQ intelligence pipeline", () => {
+
+  it("passes the answer quality gate for a normal blocked response", () => {
+    const result = runIntelligencePipeline("Why are my sales down?");
+    expect(result.answerQuality?.passed).toBe(true);
+    expect(result.answerQuality?.issues).toEqual([]);
+  });
+
   it("blocks business questions that require connected business data", () => {
     const result = runIntelligencePipeline("Why are my sales down?");
     expect(result.intent.kind).toBe("investigate");
