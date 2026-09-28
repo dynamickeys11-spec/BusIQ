@@ -10,15 +10,25 @@ import { validateToolResult } from "./result-validation";
 import { assessResearchEvidence, decideResearchStopping } from "./research-assessment";
 import { validateAnswerQuality } from "./answer-quality";
 import { buildActionDecision, getActionForKind, resolveActionRequest } from "./actions";
+import { flattenContext, selectRelevantContext } from "./context";
+import type { ContextState, ContextEntry } from "./context";
 import type { IntelligencePipelineResult } from "./types";
+
+export type IntelligencePipelineOptions = {
+  context?: ContextState | ContextEntry[];
+  now?: Date;
+};
 
 function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelineResult {
   return { ...result, answerQuality: validateAnswerQuality(result) };
 }
 
-export function runIntelligencePipeline(request: string): IntelligencePipelineResult {
+export function runIntelligencePipeline(request: string, options: IntelligencePipelineOptions = {}): IntelligencePipelineResult {
   const normalized = request.trim().replace(/\s+/g, " ");
   const intent = resolveIntent(normalized);
+  const contextEntries = Array.isArray(options.context) ? options.context : options.context ? flattenContext(options.context) : [];
+  const contextUsed = normalized ? selectRelevantContext(contextEntries, normalized, options.now) : [];
+  const contextSummary = contextUsed.length ? ` ${contextUsed.length} usable persistent context item(s) informed planning; persistent context is not treated as verified evidence.` : "";
   const ambiguity = detectAmbiguity(normalized, intent);
   const capabilities = describeCapabilities(intent.requiredCapabilities, intent.needsBusinessData, intent.needsExternalResearch);
   const routing = routeCapabilities(intent);
@@ -35,7 +45,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
   const actionBlocked = actionDecision?.state === "blocked" && actionDecision.action.availability === "unavailable";
   const blockedRouting = routing.filter(item => item.state === "blocked");
   const base = {
-    request: normalized, intent, ambiguity, capabilities, researchPlan, routing,
+    request: normalized, intent, ambiguity, capabilities, researchPlan, routing, contextUsed,
   };
 
   if (ambiguity.length) {
@@ -51,7 +61,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       answer: {
         type: "clarification",
         headline: ambiguity[0].question,
-        detail: ambiguity[0].reason,
+        detail: ambiguity[0].reason + contextSummary,
         nextAction: "Answer the clarification so BUSIQ can continue.",
       },
       trace: ["Normalize request", "Resolve intent", "Check material ambiguity", "Resolve candidate tools", "Stop before unsupported execution"],
@@ -71,7 +81,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       answer: {
         type: "blocked",
         headline: "The request is understood, but the required execution path is not connected yet.",
-        detail: [...unavailable.map(item => item.reason), ...blockedRouting.map(item => item.reason), ...(actionBlocked && actionDecision ? [actionDecision.reason] : [])].join(" ") + " BUSIQ will not invent the missing capability, connection, or action result.",
+        detail: [...unavailable.map(item => item.reason), ...blockedRouting.map(item => item.reason), ...(actionBlocked && actionDecision ? [actionDecision.reason] : [])].join(" ") + " BUSIQ will not invent the missing capability, connection, or action result." + contextSummary,
         nextAction: "Connect the required source or implement/connect the required execution capability.",
       },
       trace: ["Normalize request", "Resolve required capabilities", "Route to suitable tools", "Plan research", "Verify available evidence", "Stop before unsupported execution"],
@@ -115,7 +125,7 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       answer: {
         type: "blocked",
         headline: "The request is understood, but execution stopped safely.",
-        detail: executionBlocked.map(item => item.reason).join(" ") + " BUSIQ will not claim work was completed when an executor is missing.",
+        detail: executionBlocked.map(item => item.reason).join(" ") + " BUSIQ will not claim work was completed when an executor is missing." + contextSummary,
         nextAction: "Implement or connect the missing executor before continuing.",
       },
       trace: ["Normalize request", "Resolve intent", "Check material ambiguity", "Resolve capabilities", "Route to suitable tools", "Execute available tools", "Verify execution evidence", "Stop on missing executor"],
