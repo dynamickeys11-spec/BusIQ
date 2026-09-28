@@ -28,9 +28,16 @@ export type EvidenceQualityIssue = {
   message: string;
 };
 
-export function classifyEvidenceQuality(item: EvidenceItem): "strong" | "limited" | "unknown" {\n  if (!item.authority || item.authority === "unknown" || !item.freshness || item.freshness === "unknown" || item.verification !== "verified" || !item.relevance || item.relevance === "unknown") return "unknown";\n  if (item.relevance === "direct" && item.authority !== "user") return "strong";\n  return "limited";\n}\n\nfunction evidenceQualityIssues(evidence: EvidenceItem[], request: string): EvidenceQualityIssue[] {
+export function classifyEvidenceQuality(item: EvidenceItem): "strong" | "limited" | "unknown" {
+  if (!item.authority || item.authority === "unknown" || !item.freshness || item.freshness === "unknown" || item.verification !== "verified" || !item.relevance || item.relevance === "unknown") return "unknown";
+  if (item.relevance === "direct" && item.authority !== "user") return "strong";
+  return "limited";
+}
+
+function evidenceQualityIssues(evidence: EvidenceItem[], request: string): EvidenceQualityIssue[] {
   const issues: EvidenceQualityIssue[] = [];
-  for (const item of evidence.filter(item => item.kind === "retrieved" || item.kind === "verified")) {\n    const quality = classifyEvidenceQuality(item);
+  for (const item of evidence.filter(item => item.kind === "retrieved" || item.kind === "verified")) {
+    const quality = classifyEvidenceQuality(item);
     if (item.authority === "unknown" || !item.authority) issues.push({ evidenceId: item.id, category: "authority", message: `Evidence ${item.id} has unknown source authority.` });
     const timeContext = requestedTimeContext(request);
     if (item.freshness === "unknown" || !item.freshness) issues.push({ evidenceId: item.id, category: "freshness", message: `Evidence ${item.id} has unknown freshness.` });
