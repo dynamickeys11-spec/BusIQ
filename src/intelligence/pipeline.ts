@@ -134,7 +134,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
 
   const planResult = execution.find(result => result.toolId === "local-plan-builder");
   const plan = planResult?.state === "success" ? planResult.output : undefined;
-  return {
+  return finalizeResult({
     ...base,
     status: "ready",
     execution: executionRecords,
@@ -146,11 +146,11 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
     answer: {
       type: "execution-plan",
       headline: plan ? "BUSIQ created a real local plan structure." : "The request was resolved and executed through the available local capabilities.",
-      detail: plan
+      detail: (plan
         ? "The plan structure is deterministic and contains no invented business facts or external research."
-        : "BUSIQ completed the available local execution path without claiming unsupported facts.",
+        : "BUSIQ completed the available local execution path without claiming unsupported facts.") + contextSummary,
       nextAction: plan ? "Review the plan structure, then connect business evidence when the next step requires real facts." : "Continue with the next available capability.",
     },
-    trace: ["Normalize request", "Resolve intent", "Check material ambiguity", "Resolve capabilities", "Route to suitable tools", "Plan research", "Execute available tools", "Verify execution evidence", "Return verified execution result"],
-  };
+    trace: ["Normalize request", "Resolve intent", "Load usable persistent context", "Check material ambiguity", "Resolve capabilities", "Route to suitable tools", "Plan research", "Execute available tools", "Verify execution evidence", "Return verified execution result"],
+  });
 }
