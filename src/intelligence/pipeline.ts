@@ -137,5 +137,5 @@ export function runIntelligencePipeline(request: string): IntelligencePipelineRe
       nextAction: plan ? "Review the plan structure, then connect business evidence when the next step requires real facts." : "Continue with the next available capability.",
     },
     trace: ["Normalize request", "Resolve intent", "Check material ambiguity", "Resolve capabilities", "Route to suitable tools", "Plan research", "Execute available tools", "Verify execution evidence", "Return verified execution result"],
-  });
+  };
 }
