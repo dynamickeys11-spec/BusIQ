@@ -3,7 +3,7 @@ import {runIntelligencePipeline,type IntelligencePipelineResult} from "./intelli
 
 type Experience="Workspace"|"Discover"|"Build"|"Library"|"Account";
 type BusinessProfile={name:string;type:string;location:string};
-type WorkItem={id:string;request:string;intent:IntelligencePipelineResult["intent"];createdAt:string;status:"active"|"complete"};
+type WorkItem={id:string;request:string;intent:IntelligencePipelineResult["intent"];createdAt:string;status:"active"|"complete";pipeline?:IntelligencePipelineResult};
 type LibraryItem={id:string;title:string;body:string;createdAt:string};
 const experiences:Experience[]=["Workspace","Discover","Build","Library","Account"];
 const profileKey="busiq:business-profile",workKey="busiq:work",libraryKey="busiq:library";
@@ -29,7 +29,7 @@ export default function App(){
    if(!result.request)return;
    setPipeline(result);
    if(result.status!=="needs_clarification"){
-     setWork(c=>[{id:crypto.randomUUID(),request:result.request,intent:result.intent,createdAt:new Date().toISOString(),status:"active" as const},...c].slice(0,20));
+     setWork(c=>[{id:crypto.randomUUID(),request:result.request,intent:result.intent,createdAt:new Date().toISOString(),status:"active" as const,pipeline:result},...c].slice(0,20));
    }
    setRequest("");
    setActive("Workspace");
@@ -57,7 +57,7 @@ export default function App(){
     <section className="attention-section"><div className="section-header"><div className="section-kicker">Current state</div><h2>{profile.name?"What matters now":"Start with the business"}</h2></div>
       {!profile.name?<article className="state-row"><div><strong>Your business is not connected yet.</strong><p>Enter your business details in Account. BUSIQ will store them locally on this device until a real backend is introduced.</p></div><button className="secondary-button" type="button" onClick={()=>setActive("Account")}>Set up business</button></article>
       :activeWork.length===0?<article className="state-row"><div><strong>No active work.</strong><p>Ask BUSIQ a real question or start a plan. New work appears here automatically.</p></div></article>
-      :activeWork.slice(0,4).map(item=><article className="state-row" key={item.id}><div><strong>{item.request}</strong><p>{item.intent.label}</p></div><button className="secondary-button" type="button" onClick={()=>setWork(c=>c.map(x=>x.id===item.id?{...x,status:"complete"}:x))}>Mark complete</button></article>)}
+      :activeWork.slice(0,4).map(item=><article className="state-row" key={item.id}><div><strong>{item.request}</strong><p>{item.intent.label}</p></div><div className="row-actions"><button className="secondary-button" type="button" onClick={()=>{setPipeline(item.pipeline??runIntelligencePipeline(item.request));setActive("Workspace")}}>Resume</button><button className="secondary-button" type="button" onClick={()=>setWork(c=>c.map(x=>x.id===item.id?{...x,status:"complete"}:x))}>Mark complete</button></div></article>)}
     </section>
    </>}
    {active==="Discover"&&<Page title="Discover" eyebrow="BUSIQ · DISCOVER"><p>External intelligence belongs here when a question actually requires it.</p><div className="empty-state"><strong>No external source is connected.</strong><span>BUSIQ will not manufacture market, competitor, regulatory or industry facts. A research connector must be configured before those facts can appear.</span></div></Page>}
