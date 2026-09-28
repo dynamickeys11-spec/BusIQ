@@ -80,8 +80,17 @@ function PipelineView({result}:{result:IntelligencePipelineResult}){
     <div><strong>Execution</strong><span>{result.execution.length ? result.execution.map(x=>`${x.toolId}: ${x.state}`).join(" · ") : "No execution attempted."}</span></div>
    </div>
    {result.verification.missingEvidence.length>0&&<div className="truth-note"><strong>Evidence required</strong><p>{result.verification.missingEvidence.join(" ")}</p></div>}
-   <div className="pipeline-trace"><strong>Trace</strong><span>{result.trace.join(" → ")}</span></div>
    <p className="next-action"><strong>Next:</strong> {result.answer.nextAction}</p>
+   <details className="answer-details">
+    <summary>Why this answer?</summary>
+    <div className="answer-detail-body">
+      <p>{result.answer.detail}</p>
+      {result.answer.evidence?.length ? <div><strong>Evidence used</strong><ul>{result.answer.evidence.map(id=><li key={id}>{id}</li>)}</ul></div> : null}
+      {result.answer.limitations?.length ? <div><strong>Limitations</strong><ul>{result.answer.limitations.map(item=><li key={item}>{item}</li>)}</ul></div> : null}
+      <div><strong>Quality gate</strong><span>{result.answerQuality?.passed ? "Passed" : "Blocked: "+(result.answerQuality?.issues.join(", ")||"unknown issue")}</span></div>
+      <div><strong>Trace</strong><span>{result.trace.join(" → ")}</span></div>
+    </div>
+   </details>
  </section>
 }
 function Page({title,eyebrow,children}:{title:string;eyebrow:string;children:ReactNode}){return <div className="page"><div className="eyebrow">{eyebrow}</div><h1>{title}</h1>{children}</div>}
