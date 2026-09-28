@@ -77,16 +77,20 @@ function recommendationConclusion(finding: ReasoningConclusion): ReasoningConclu
     type: "RECOMMENDATION",
     statement: "Use the verified finding as the evidence basis for the decision, applying the explicit decision criteria before taking action.",
     evidenceIds: finding.evidenceIds,
-    dependsOn: ["finding-1"],
     support: "supported",
   };
 }
 
 function buildChains(conclusions: ReasoningConclusion[]): ReasoningChain[] {
+  const ids = conclusions.map((conclusion, index) => `${conclusion.type.toLowerCase()}-${index + 1}`);
   return conclusions.map((conclusion, index) => {
-    const conclusionId = `${conclusion.type.toLowerCase()}-${index + 1}`;
-    const dependsOn = conclusion.dependsOn ?? [];
-    return { conclusionId, type: conclusion.type, evidenceIds: conclusion.evidenceIds, dependsOn };
+    const conclusionId = ids[index];
+    const derivedDependencies = conclusion.type === "FINDING"
+      ? conclusions.slice(0, index).map((item, itemIndex) => item.type === "FACT" ? ids[itemIndex] : null).filter((id): id is string => Boolean(id))
+      : conclusion.type === "RECOMMENDATION"
+        ? conclusions.slice(0, index).map((item, itemIndex) => item.type === "FINDING" ? ids[itemIndex] : null).filter((id): id is string => Boolean(id)).slice(-1)
+        : [];
+    return { conclusionId, type: conclusion.type, evidenceIds: conclusion.evidenceIds, dependsOn: conclusion.dependsOn ?? derivedDependencies };
   });
 }
 
