@@ -11,7 +11,11 @@ import { assessResearchEvidence, decideResearchStopping } from "./research-asses
 import { validateAnswerQuality } from "./answer-quality";
 import type { IntelligencePipelineResult } from "./types";
 
-function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelineResult {\n  return { ...result, answerQuality: validateAnswerQuality(result) };\n}\n\nexport function runIntelligencePipeline(request: string): IntelligencePipelineResult {
+function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelineResult {
+  return { ...result, answerQuality: validateAnswerQuality(result) };
+}
+
+export function runIntelligencePipeline(request: string): IntelligencePipelineResult {
   const normalized = request.trim().replace(/\s+/g, " ");
   const intent = resolveIntent(normalized);
   const ambiguity = detectAmbiguity(normalized, intent);
@@ -30,7 +34,7 @@ function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelin
   };
 
   if (ambiguity.length) {
-    return {
+    return finalizeResult({
       ...base,
       status: "needs_clarification",
       execution: [],
@@ -46,11 +50,11 @@ function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelin
         nextAction: "Answer the clarification so BUSIQ can continue.",
       },
       trace: ["Normalize request", "Resolve intent", "Check material ambiguity", "Resolve candidate tools", "Stop before unsupported execution"],
-    };
+    });
   }
 
   if (unavailable.length || blockedRouting.length) {
-    return {
+    return finalizeResult({
       ...base,
       status: "needs_connection",
       execution: [],
@@ -66,7 +70,7 @@ function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelin
         nextAction: "Connect the required source or implement/connect the required execution capability.",
       },
       trace: ["Normalize request", "Resolve required capabilities", "Route to suitable tools", "Plan research", "Verify available evidence", "Stop before unsupported execution"],
-    };
+    });
   }
 
   const execution = routing
@@ -94,7 +98,7 @@ function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelin
   const reasoning = reasonFromEvidence(allEvidence, verification.state, normalized);
 
   if (executionBlocked.length) {
-    return {
+    return finalizeResult({
       ...base,
       status: "blocked",
       execution: executionRecords,
@@ -110,7 +114,7 @@ function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelin
         nextAction: "Implement or connect the missing executor before continuing.",
       },
       trace: ["Normalize request", "Resolve intent", "Check material ambiguity", "Resolve capabilities", "Route to suitable tools", "Execute available tools", "Verify execution evidence", "Stop on missing executor"],
-    };
+    });
   }
 
   const planResult = execution.find(result => result.toolId === "local-plan-builder");
@@ -133,5 +137,5 @@ function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelin
       nextAction: plan ? "Review the plan structure, then connect business evidence when the next step requires real facts." : "Continue with the next available capability.",
     },
     trace: ["Normalize request", "Resolve intent", "Check material ambiguity", "Resolve capabilities", "Route to suitable tools", "Plan research", "Execute available tools", "Verify execution evidence", "Return verified execution result"],
-  };
+  });
 }
