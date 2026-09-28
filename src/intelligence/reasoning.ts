@@ -23,7 +23,7 @@ function hasVerifiedProvenance(item: EvidenceItem): boolean {
 }
 
 function normalizeDetail(detail: string): string {
-  return detail.trim().toLowerCase().replace(/\\s+/g, " ");
+  return detail.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 function hasComparableScope(left: EvidenceItem, right: EvidenceItem): boolean {
@@ -35,8 +35,8 @@ function hasComparableScope(left: EvidenceItem, right: EvidenceItem): boolean {
 
 function direction(detail: string): "up" | "down" | "neutral" {
   const value = normalizeDetail(detail);
-  if (/\\b(increased|increase|up|rose|rising|grew|growth)\\b/.test(value)) return "up";
-  if (/\\b(decreased|decrease|down|fell|falling|declined|decline|dropped)\\b/.test(value)) return "down";
+  if (/\b(increased|increase|up|rose|rising|grew|growth)\b/.test(value)) return "up";
+  if (/\b(decreased|decrease|down|fell|falling|declined|decline|dropped)\b/.test(value)) return "down";
   return "neutral";
 }
 
