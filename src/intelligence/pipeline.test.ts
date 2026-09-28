@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { runIntelligencePipeline } from "./pipeline";
 import { reasonFromEvidence } from "./reasoning";
 import { classifyEvidenceQuality, verifyEvidence } from "./verify";
+import { resolveIntent } from "../bie/intent";
+import { listCapabilities } from "./capabilities";
+import { routeCapabilities } from "./router";
 
 describe("BUSIQ intelligence pipeline", () => {
   it("blocks business questions that require connected business data", () => {
