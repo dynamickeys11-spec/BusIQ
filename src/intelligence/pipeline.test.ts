@@ -78,7 +78,7 @@ describe("BUSIQ intelligence pipeline", () => {
 
   it("allows verified retrieved evidence to produce an evidence-linked fact", () => {
     const result = reasonFromEvidence(
-      [{ id: "source-1", kind: "retrieved", label: "Source", detail: "Sales fell 8%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified" }],
+      [{ id: "source-1", kind: "retrieved", label: "Source", detail: "Sales fell 8%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" }],
       "passed",
       "Why did sales change?",
     );
@@ -94,8 +94,8 @@ describe("BUSIQ intelligence pipeline", () => {
   it("derives a finding only from multiple verified facts", () => {
     const result = reasonFromEvidence(
       [
-        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales fell 8%.", source: "Connector", verification: "verified" },
-        { id: "source-2", kind: "retrieved", label: "Orders", detail: "Orders fell 13%.", source: "Connector", verification: "verified" },
+        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales fell 8%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
+        { id: "source-2", kind: "retrieved", label: "Orders", detail: "Orders fell 13%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
       ],
       "passed",
       "Why did sales change?",
@@ -118,14 +118,14 @@ describe("BUSIQ intelligence pipeline", () => {
     );
     expect(result.state).toBe("insufficient");
     expect(result.conclusions).toHaveLength(0);
-    expect(result.limitations.join(" ")).toContain("not directly relevant");
+    expect(result.limitations.join(" ")).toContain("none is directly relevant");
   });
 
   it("blocks combined findings when verified evidence conflicts", () => {
     const result = reasonFromEvidence(
       [
-        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", verification: "verified" },
-        { id: "source-2", kind: "retrieved", label: "Sales", detail: "Sales decreased 3%.", source: "Connector", verification: "verified" },
+        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
+        { id: "source-2", kind: "retrieved", label: "Sales", detail: "Sales decreased 3%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
       ],
       "passed",
       "How did sales change?",
@@ -139,8 +139,8 @@ describe("BUSIQ intelligence pipeline", () => {
   it("does not treat different scopes as conflicting evidence", () => {
     const result = reasonFromEvidence(
       [
-        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", scope: "Online", verification: "verified" },
-        { id: "source-2", kind: "retrieved", label: "Sales", detail: "Sales decreased 3%.", source: "Connector", scope: "Retail", verification: "verified" },
+        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", scope: "Online", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
+        { id: "source-2", kind: "retrieved", label: "Sales", detail: "Sales decreased 3%.", source: "Connector", scope: "Retail", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" },
       ],
       "passed",
       "How did sales change?",
@@ -152,8 +152,8 @@ describe("BUSIQ intelligence pipeline", () => {
   it("does not treat different evidence dates as conflicting", () => {
     const result = reasonFromEvidence(
       [
-        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", evidenceDate: "2026-09-26", verification: "verified" },
-        { id: "source-2", kind: "retrieved", label: "Sales", detail: "Sales decreased 3%.", source: "Connector", evidenceDate: "2026-09-27", verification: "verified" },
+        { id: "source-1", kind: "retrieved", label: "Sales", detail: "Sales increased 8%.", source: "Connector", evidenceDate: "2026-09-26", authority: "connected-source", freshness: "dated", verification: "verified", relevance: "direct" },
+        { id: "source-2", kind: "retrieved", label: "Sales", detail: "Sales decreased 3%.", source: "Connector", evidenceDate: "2026-09-27", authority: "connected-source", freshness: "dated", verification: "verified", relevance: "direct" },
       ],
       "passed",
       "How did sales change?",
