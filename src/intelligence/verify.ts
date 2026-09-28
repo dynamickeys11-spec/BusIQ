@@ -1,8 +1,8 @@
 import type { EvidenceItem, ResearchStep } from "./types";
 
 function requestedTimeContext(request: string): "current" | "historical" | "unspecified" {
-  if (/\\b(today|now|currently|current|latest|this week|this month|recent)\\b/i.test(request)) return "current";
-  if (/\\b(last year|last month|yesterday|previous|historical|in \\d{4}|during \\d{4})\\b/i.test(request)) return "historical";
+  if (/\b(today|now|currently|current|latest|this week|this month|recent)\b/i.test(request)) return "current";
+  if (/\b(last year|last month|yesterday|previous|historical|in \d{4}|during \d{4})\b/i.test(request)) return "historical";
   return "unspecified";
 }
 
