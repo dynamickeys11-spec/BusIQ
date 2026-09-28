@@ -28,16 +28,16 @@ export type EvidenceQualityIssue = {
   message: string;
 };
 
-function evidenceQualityIssues(evidence: EvidenceItem[], request: string): EvidenceQualityIssue[] {
+export function classifyEvidenceQuality(item: EvidenceItem): "strong" | "limited" | "unknown" {\n  if (!item.authority || item.authority === "unknown" || !item.freshness || item.freshness === "unknown" || item.verification !== "verified" || !item.relevance || item.relevance === "unknown") return "unknown";\n  if (item.relevance === "direct" && item.authority !== "user") return "strong";\n  return "limited";\n}\n\nfunction evidenceQualityIssues(evidence: EvidenceItem[], request: string): EvidenceQualityIssue[] {
   const issues: EvidenceQualityIssue[] = [];
-  for (const item of evidence.filter(item => item.kind === "retrieved" || item.kind === "verified")) {
+  for (const item of evidence.filter(item => item.kind === "retrieved" || item.kind === "verified")) {\n    const quality = classifyEvidenceQuality(item);
     if (item.authority === "unknown" || !item.authority) issues.push({ evidenceId: item.id, category: "authority", message: `Evidence ${item.id} has unknown source authority.` });
     const timeContext = requestedTimeContext(request);
     if (item.freshness === "unknown" || !item.freshness) issues.push({ evidenceId: item.id, category: "freshness", message: `Evidence ${item.id} has unknown freshness.` });
     else if (timeContext === "current" && item.freshness !== "current") issues.push({ evidenceId: item.id, category: "freshness", message: `Evidence ${item.id} is not current enough for the requested time context.` });
     else if (timeContext === "historical" && !item.evidenceDate) issues.push({ evidenceId: item.id, category: "freshness", message: `Evidence ${item.id} lacks a date needed for the historical time context.` });
     if (item.verification !== "verified") issues.push({ evidenceId: item.id, category: "verification", message: `Evidence ${item.id} is not verified.` });
-    if (item.relevance === "unknown" || !item.relevance) issues.push({ evidenceId: item.id, category: "relevance", message: `Evidence ${item.id} has unknown relevance.` });
+    if (quality === "unknown" || item.relevance === "unknown" || !item.relevance) issues.push({ evidenceId: item.id, category: "relevance", message: `Evidence ${item.id} has unknown relevance.` });
   }
   return issues;
 }
