@@ -24,6 +24,7 @@ export type ToolExecutionRequest = {
   toolId: string;
   request: string;
   inputs: Record<string, unknown>;
+  authorization?: { granted: boolean; scope?: string };
 };
 
 export type ToolExecutionResult =
