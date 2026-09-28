@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { runIntelligencePipeline } from "./pipeline";
 import { reasonFromEvidence } from "./reasoning";
-import { verifyEvidence } from "./verify";
+import { classifyEvidenceQuality, verifyEvidence } from "./verify";
 
 describe("BUSIQ intelligence pipeline", () => {
   it("blocks business questions that require connected business data", () => {
@@ -284,6 +284,12 @@ describe("BUSIQ intelligence pipeline", () => {
     );
     expect(result.state).toBe("ready");
     expect(result.limitations.join(" ")).not.toContain("Conflicting evidence");
+  });
+
+  it("classifies evidence quality from provenance metadata", () => {
+    expect(classifyEvidenceQuality({ id: "strong", kind: "retrieved", label: "Sales", detail: "Sales fell 8%.", source: "Connector", authority: "connected-source", freshness: "current", verification: "verified", relevance: "direct" })).toBe("strong");
+    expect(classifyEvidenceQuality({ id: "limited", kind: "retrieved", label: "Orders", detail: "Orders fell 4%.", source: "Connector", authority: "connected-source", freshness: "dated", verification: "verified", relevance: "indirect" })).toBe("limited");
+    expect(classifyEvidenceQuality({ id: "unknown", kind: "retrieved", label: "Customers", detail: "Customers changed.", source: "Connector", verification: "unverified", relevance: "direct" })).toBe("unknown");
   });
 
   it("asks for clarification for an unknown request", () => {
