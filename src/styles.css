@@ -19,3 +19,13 @@
 .answer-detail-body span{display:block;margin-top:5px}
 
 .row-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+.action-gate{display:grid;gap:12px;margin-top:18px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--soft)}
+.action-gate-heading{display:flex;justify-content:space-between;gap:16px;align-items:center}
+.action-gate-heading span{color:var(--muted);font-size:13px}
+.action-gate p{margin:0;font-size:13px}
+.action-gate-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.action-gate-meta span{display:grid;gap:4px;padding:10px;border-radius:10px;background:#fff;color:var(--muted);font-size:12px}
+.action-gate-meta strong{color:var(--midnight)}
+.action-gate-note{color:var(--muted);font-size:12px;line-height:1.5}
+@media(max-width:800px){.action-gate-meta{grid-template-columns:1fr}}
