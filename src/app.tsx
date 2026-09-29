@@ -135,7 +135,7 @@ export default function App() {
           request: result.request,
           intent: result.intent,
           createdAt: new Date().toISOString(),
-          status: "active",
+          status: "active" as const,
           pipeline: result,
         },
         ...current,
