@@ -15,3 +15,8 @@ export type {
   ActionExecutionResult,
   ActionProvider,
 } from "./types";
+
+export {
+  OpenAICompatibleModelProvider,
+  createOllamaModelProvider,
+} from "./openai-compatible";
