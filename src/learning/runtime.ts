@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { OpenAICompatibleModelProvider } from "../providers";
 import type { ModelProvider } from "../providers";
-import { defaultLearningPolicy, evaluateLearningExample, proposeLearnedRule } from "./engine";
+import { evaluateLearningExample, proposeLearnedRule } from "./engine";
+import { defaultLearningPolicy } from "./types";
 import type { LearningEvaluation, LearningExample } from "./types";
 
 type RetrievedMemory = { id: string; exampleId: string; content: string; similarity: number };
