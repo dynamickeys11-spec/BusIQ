@@ -100,26 +100,48 @@ export default function App() {
     let active = true;
     void supabase.auth.getSession().then(async ({ data }) => {
       if (!active) return;
-      setUserEmail(data.session?.user.email ?? "");
-      if (data.session) {
+
+      let session = data.session;
+      if (!session) {
+        const anonymous = await supabase.auth.signInAnonymously();
+        if (anonymous.error) {
+          console.warn("BUSIQ could not create an anonymous guest session.", anonymous.error.message);
+        }
+        session = anonymous.data.session ?? null;
+      }
+
+      if (!active) return;
+
+      const isAnonymous = session?.user.is_anonymous === true;
+      setUserEmail(isAnonymous ? "" : session?.user.email ?? "");
+
+      if (session && !isAnonymous) {
         const { data: businesses } = await supabase.from("businesses").select("id,name").limit(2);
         if (businesses?.length === 1) {
           setBusinessId(businesses[0].id);
           if (!profile.name && businesses[0].name) setProfile((current) => ({ ...current, name: businesses[0].name }));
         } else setBusinessId("");
-      } else setBusinessId("");
+      } else {
+        setBusinessId("");
+      }
+
       setAuthReady(true);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserEmail(session?.user.email ?? "");
-      if (session) {
+      const isAnonymous = session?.user.is_anonymous === true;
+      setUserEmail(isAnonymous ? "" : session?.user.email ?? "");
+
+      if (session && !isAnonymous) {
         void supabase.from("businesses").select("id,name").limit(2).then(({ data: businesses }) => {
           if (businesses?.length === 1) {
             setBusinessId(businesses[0].id);
             if (!profile.name && businesses[0].name) setProfile((current) => ({ ...current, name: businesses[0].name }));
           } else setBusinessId("");
         });
-      } else setBusinessId("");
+      } else {
+        setBusinessId("");
+      }
+
       setAuthReady(true);
     });
     return () => {
