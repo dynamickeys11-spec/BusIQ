@@ -1,13 +1,12 @@
 import { consumeUsage, defaultUsagePolicy, runIntelligencePipeline } from "../src/intelligence";
 import { validateRequestBody } from "../src/intelligence/api-validation";
-import { getAuthenticatedUser } from "./auth";
+import { getAuthenticatedUser, getAuthorizedBusinessIds } from "./auth";
 
 const rateBuckets = new Map<string, { startedAt: number; count: number }>();
 
 export default async function handler(request: Request): Promise<Response> {
   const requestId = crypto.randomUUID();
   const startedAt = Date.now();
-  const rateKey = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "anonymous";
 
   if (request.method !== "POST") {
     console.warn(JSON.stringify({ event: "api.intelligence.rejected", requestId, reason: "method" }));
@@ -15,11 +14,13 @@ export default async function handler(request: Request): Promise<Response> {
   }
 
   const authentication = await getAuthenticatedUser(request);
-  if (!authentication.user) return json({ error: authentication.error || "Authentication required", requestId }, 401);
+  if (!authentication.user || !authentication.supabase) {
+    return json({ error: authentication.error || "Authentication required", requestId }, 401);
+  }
 
   const usage = consumeUsage(rateBuckets, authentication.user.id, startedAt, defaultUsagePolicy);
   if (!usage.allowed) {
-    console.warn(JSON.stringify({ event: "api.intelligence.rate_limited", requestId }));
+    console.warn(JSON.stringify({ event: "api.intelligence.rate_limited", requestId, userId: authentication.user.id }));
     return json({ error: "Rate limit exceeded", requestId }, 429, { "retry-after": String(usage.retryAfterSeconds) });
   }
 
@@ -30,12 +31,46 @@ export default async function handler(request: Request): Promise<Response> {
       return json({ error: validation.error, requestId }, validation.status);
     }
 
-    const result = runIntelligencePipeline(validation.request, {
-      context: validation.context,
-    });
+    const scope = await getAuthorizedBusinessIds(authentication.supabase, authentication.user.id);
+    if (scope.error) {
+      return json({ error: scope.error, requestId }, 500);
+    }
+
+    const requestedBusinessId = validation.businessId;
+    if (requestedBusinessId && !scope.businessIds.includes(requestedBusinessId)) {
+      console.warn(JSON.stringify({
+        event: "api.intelligence.cross_business_rejected",
+        requestId,
+        userId: authentication.user.id,
+        businessId: requestedBusinessId,
+      }));
+      return json({ error: "You do not have access to this business.", requestId }, 403);
+    }
+
+    const businessId = requestedBusinessId
+      ?? (scope.businessIds.length === 1 ? scope.businessIds[0] : undefined);
+
+    if (!businessId) {
+      const error = scope.businessIds.length === 0
+        ? "No business is connected to this account yet."
+        : "Select a business before using BUSIQ.";
+      return json({ error, requestId, code: scope.businessIds.length === 0 ? "BUSINESS_SETUP_REQUIRED" : "BUSINESS_SELECTION_REQUIRED" }, 409);
+    }
+
+    const context = validation.context
+      ? {
+          ...validation.context,
+          business: validation.context.business.filter((entry) => !entry.businessId || entry.businessId === businessId),
+        }
+      : undefined;
+
+    const result = runIntelligencePipeline(validation.request, { context });
+
     console.info(JSON.stringify({
       event: "api.intelligence.completed",
       requestId,
+      userId: authentication.user.id,
+      businessId,
       status: result.status,
       intent: result.intent.kind,
       durationMs: Date.now() - startedAt,
@@ -46,6 +81,7 @@ export default async function handler(request: Request): Promise<Response> {
     console.error(JSON.stringify({
       event: "api.intelligence.failed",
       requestId,
+      userId: authentication.user.id,
       durationMs: Date.now() - startedAt,
       error: error instanceof Error ? error.message : "Unknown error",
     }));
