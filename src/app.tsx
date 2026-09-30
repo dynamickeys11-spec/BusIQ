@@ -323,6 +323,7 @@ function Home({
   setRequest,
   submitRequest,
   pipeline,
+  pipelineError,
   activeWork,
   work,
   onOpenWork,
