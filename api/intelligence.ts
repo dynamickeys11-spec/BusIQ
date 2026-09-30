@@ -254,8 +254,8 @@ export default async function handler(request: Request): Promise<Response> {
     try {
       const { getConfiguredModelProvider } = await import("../src/learning/runtime");
       const { generateModelAnswer } = await import("../src/intelligence/model-answer");
-      const provider = getConfiguredModelProvider();
-      if (provider) result = await generateModelAnswer(provider, result);
+      const provider = getConfiguredModelProvider() ?? new SupabaseEdgeModelProvider(authentication.supabase);
+      result = await generateModelAnswer(provider, result);
     } catch (error) {
       console.warn(JSON.stringify({
         event: "api.intelligence.model_unavailable",
