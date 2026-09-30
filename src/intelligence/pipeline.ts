@@ -18,6 +18,7 @@ export type IntelligencePipelineOptions = {
   context?: ContextState | ContextEntry[];
   now?: Date;
   externalEvidence?: import("./types").EvidenceItem[];
+  businessEvidence?: import("./types").EvidenceItem[];
 };
 
 function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelineResult {
@@ -48,12 +49,16 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const initialResearchStopping = initialResearchAssessment ? decideResearchStopping(initialResearchAssessment, 0) : undefined;
   const unavailable = capabilities.filter(
     item => item.status === "unavailable" &&
-      !(item.id === "external-research" && options.externalEvidence?.length),
+      !(item.id === "external-research" && options.externalEvidence?.length) &&
+      !(item.id === "business-data-retrieval" && options.businessEvidence?.length) &&
+      !(["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(item.id) && options.businessEvidence?.length),
   );
   const actionBlocked = actionDecision?.state === "blocked" && actionDecision.action.availability === "unavailable";
   const blockedRouting = routing.filter(
     item => item.state === "blocked" &&
-      !(item.capabilityId === "external-research" && options.externalEvidence?.length),
+      !(item.capabilityId === "external-research" && options.externalEvidence?.length) &&
+      !(item.capabilityId === "business-data-retrieval" && options.businessEvidence?.length) &&
+      !(["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(item.capabilityId) && options.businessEvidence?.length),
   );
   const base = {
     request: normalized, intent, ambiguity, capabilities, researchPlan, routing, contextUsed,
@@ -116,12 +121,13 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const validatedExecution = execution.map(validateToolResult);
   const executionEvidence = validatedExecution.flatMap(result => result.state === "success" ? result.evidence : []);
   const externalEvidence = options.externalEvidence ?? [];
-  const allEvidence = [...initialEvidence, ...externalEvidence, ...executionEvidence];
+  const businessEvidence = options.businessEvidence ?? [];
+  const allEvidence = [...initialEvidence, ...externalEvidence, ...businessEvidence, ...executionEvidence];
 
   const executionBlocked = validatedExecution.filter(result => result.state === "blocked");
   const executionSucceeded =
     executionBlocked.length === 0 &&
-    (validatedExecution.length > 0 || externalEvidence.length > 0 || !intent.needsBusinessData && !intent.needsExternalResearch);
+    (validatedExecution.length > 0 || externalEvidence.length > 0 || businessEvidence.length > 0 || !intent.needsBusinessData && !intent.needsExternalResearch);
   const verification = verifyEvidence(allEvidence, researchPlan, 0, executionSucceeded, normalized);
   const researchAssessment = intent.needsExternalResearch ? assessResearchEvidence(allEvidence) : undefined;
   const researchStopping = researchAssessment ? decideResearchStopping(researchAssessment, new Set(allEvidence.filter(item => item.kind === "retrieved" || item.kind === "verified").map(item => item.source)).size) : undefined;
@@ -135,6 +141,9 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
         ...executionRecords,
         ...(externalEvidence.length
           ? [{ toolId: "external-research-connector", state: "success" as const, output: { sourceCount: externalEvidence.length } }]
+          : []),
+        ...(businessEvidence.length
+          ? [{ toolId: "business-data-connector", state: "success" as const, output: { recordCount: businessEvidence.length } }]
           : []),
       ],
       evidence: allEvidence,
