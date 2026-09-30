@@ -725,16 +725,12 @@ function Account({
   }
   return (
     <Page eyebrow="BUSIQ · ACCOUNT" title="Keep your context accurate." intro="Business identity, connections and preferences live here. BUSIQ does not claim services that are not connected.">
-      <form className="profile-form premium-form" onSubmit={(event) => {
-        event.preventDefault();
-        setSavedMessage("Business profile saved.");
-        window.setTimeout(() => setSavedMessage(""), 2200);
-      }}>
+      <form className="profile-form premium-form" onSubmit={saveBusiness}>
         <div className="form-title"><span>BUSINESS IDENTITY</span><strong>The basics BUSIQ can remember locally.</strong></div>
         <label>Business name<input value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} required /></label>
         <label>Business type<input value={profile.type} onChange={(event) => setProfile({ ...profile, type: event.target.value })} placeholder="e.g. retail, services, manufacturing" /></label>
         <label>Location<input value={profile.location} onChange={(event) => setProfile({ ...profile, location: event.target.value })} placeholder="City / country" /></label>
-        <div className="form-actions"><button className="primary-button" type="submit">Save business</button>{savedMessage && <span className="saved-message">{savedMessage}</span>}</div>
+        <div className="form-actions"><button className="primary-button" type="submit" disabled={savingBusiness || Boolean(businessId)}>{businessId ? "Business connected" : savingBusiness ? "Creating…" : "Save business"}</button>{savedMessage && <span className="saved-message">{savedMessage}</span>}</div>
       </form>
 
       <section className="settings-section">
