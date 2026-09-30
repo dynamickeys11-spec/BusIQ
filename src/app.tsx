@@ -786,11 +786,20 @@ function Account({
         <div className="section-heading"><div><span className="section-kicker">CONNECTIONS</span><h2>What BUSIQ can access</h2></div></div>
         <div className="settings-list">
           {[
-            ["Business profile", profile.name ? "Connected locally on this device." : "Not set up."],
-            ["Cloud database", "Not connected."],
-            ["Business systems", "Not connected."],
-            ["External research", "Not connected."],
-          ].map(([name, status]) => <div className="setting-row" key={name}><div><strong>{name}</strong><span>{status}</span></div><small>{name === "Business profile" && profile.name ? "CONNECTED" : "NOT CONNECTED"}</small></div>)}
+            ["Business profile", profile.name ? "Stored locally on this device." : "Not set up."],
+            ["Cloud database", userEmail && businessId ? "Connected to your BUSIQ business workspace." : "Sign in and create a business workspace to use cloud persistence."],
+            ["Business systems", "No external business system is connected yet."],
+            ["External research", "Free web research is configured; live runtime verification is still pending."],
+          ].map(([name, status]) => {
+            const state = name === "Business profile"
+              ? profile.name ? "LOCAL" : "NOT SET UP"
+              : name === "Cloud database"
+                ? userEmail && businessId ? "CONNECTED" : "ACCOUNT REQUIRED"
+                : name === "External research"
+                  ? "CONFIGURED"
+                  : "NOT CONNECTED";
+            return <div className="setting-row" key={name}><div><strong>{name}</strong><span>{status}</span></div><small>{state}</small></div>;
+          })}
         </div>
       </section>
 
