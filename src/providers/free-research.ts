@@ -99,7 +99,7 @@ export class FreeWebResearchProvider implements ResearchProvider {
           title: hit.title,
           url: hit.url,
           retrievedAt: new Date().toISOString(),
-          authority: /\.(gov|gov\\.[a-z]{2}|edu|int|who\\.int)$/i.test(new URL(hit.url).hostname) ? "primary" : "secondary",
+          authority: /\.(gov|gov\.[a-z]{2}|edu|int|who\.int)$/i.test(new URL(hit.url).hostname) ? "primary" : "secondary",
         });
         const statement = page.text || hit.snippet;
         if (statement) claims.push({ statement: statement.slice(0, 1800), sourceIds: [id] });
