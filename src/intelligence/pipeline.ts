@@ -17,6 +17,7 @@ import type { IntelligencePipelineResult } from "./types";
 export type IntelligencePipelineOptions = {
   context?: ContextState | ContextEntry[];
   now?: Date;
+  externalEvidence?: import("./types").EvidenceItem[];
 };
 
 function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelineResult {
@@ -35,15 +36,25 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const action = resolveActionRequest(normalized);
   const actionDefinition = action ? getActionForKind(action.kind) : undefined;
   const actionDecision = actionDefinition ? buildActionDecision(actionDefinition) : undefined;
-  const researchPlan = buildResearchPlan(intent);
+  const researchPlan = buildResearchPlan(intent).map((step) =>
+    step.id === "external-research" && options.externalEvidence?.length
+      ? { ...step, status: "available" as const }
+      : step,
+  );
   const initialEvidence = normalized
     ? [{ id: "request", kind: "user" as const, label: "User request", detail: normalized, source: "User input" }]
     : [];
   const initialResearchAssessment = intent.needsExternalResearch ? assessResearchEvidence(initialEvidence) : undefined;
   const initialResearchStopping = initialResearchAssessment ? decideResearchStopping(initialResearchAssessment, 0) : undefined;
-  const unavailable = capabilities.filter(item => item.status === "unavailable");
+  const unavailable = capabilities.filter(
+    item => item.status === "unavailable" &&
+      !(item.id === "external-research" && options.externalEvidence?.length),
+  );
   const actionBlocked = actionDecision?.state === "blocked" && actionDecision.action.availability === "unavailable";
-  const blockedRouting = routing.filter(item => item.state === "blocked");
+  const blockedRouting = routing.filter(
+    item => item.state === "blocked" &&
+      !(item.capabilityId === "external-research" && options.externalEvidence?.length),
+  );
   const base = {
     request: normalized, intent, ambiguity, capabilities, researchPlan, routing, contextUsed,
   };
@@ -104,9 +115,13 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   });
   const validatedExecution = execution.map(validateToolResult);
   const executionEvidence = validatedExecution.flatMap(result => result.state === "success" ? result.evidence : []);
-  const allEvidence = [...initialEvidence, ...executionEvidence];
+  const externalEvidence = options.externalEvidence ?? [];
+  const allEvidence = [...initialEvidence, ...externalEvidence, ...executionEvidence];
+
   const executionBlocked = validatedExecution.filter(result => result.state === "blocked");
-  const executionSucceeded = validatedExecution.length > 0 && executionBlocked.length === 0;
+  const executionSucceeded =
+    executionBlocked.length === 0 &&
+    (validatedExecution.length > 0 || externalEvidence.length > 0 || !intent.needsBusinessData && !intent.needsExternalResearch);
   const verification = verifyEvidence(allEvidence, researchPlan, 0, executionSucceeded, normalized);
   const researchAssessment = intent.needsExternalResearch ? assessResearchEvidence(allEvidence) : undefined;
   const researchStopping = researchAssessment ? decideResearchStopping(researchAssessment, new Set(allEvidence.filter(item => item.kind === "retrieved" || item.kind === "verified").map(item => item.source)).size) : undefined;
@@ -116,7 +131,12 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
     return finalizeResult({
       ...base,
       status: "blocked",
-      execution: executionRecords,
+      execution: [
+        ...executionRecords,
+        ...(externalEvidence.length
+          ? [{ toolId: "external-research-connector", state: "success" as const, output: { sourceCount: externalEvidence.length } }]
+          : []),
+      ],
       evidence: allEvidence,
       verification,
       researchAssessment,
