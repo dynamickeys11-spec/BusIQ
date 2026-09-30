@@ -66,6 +66,19 @@ export default async function handler(request: Request): Promise<Response> {
 
     const result = runIntelligencePipeline(validation.request, { context });
 
+    const { error: historyError } = await authentication.supabase.from("intelligence_runs").insert({
+      business_id: businessId,
+      user_id: authentication.user.id,
+      request: validation.request,
+      status: result.status,
+      intent: result.intent,
+      result,
+    });
+    if (historyError) {
+      console.error(JSON.stringify({ event: "api.intelligence.history_failed", requestId, userId: authentication.user.id, businessId, error: historyError.message }));
+      return json({ error: "BUSIQ could not persist this intelligence run.", requestId }, 500);
+    }
+
     console.info(JSON.stringify({
       event: "api.intelligence.completed",
       requestId,
