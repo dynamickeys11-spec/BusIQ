@@ -55,6 +55,26 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.verification.state).toBe("passed");
   });
 
+  it("accepts normalized business evidence for connected business requests", () => {
+    const result = runIntelligencePipeline("Show my sales", {
+      businessEvidence: [{
+        id: "sale-1",
+        kind: "retrieved",
+        label: "sales record",
+        detail: '{"amount":12000,"currency":"NGN"}',
+        source: "BUSIQ normalized sales data",
+        authority: "connected-source",
+        freshness: "current",
+        verification: "verified",
+        relevance: "direct",
+        quality: "strong",
+      }],
+    });
+    expect(result.status).toBe("ready");
+    expect(result.execution.some((item) => item.toolId === "business-data-connector" && item.state === "success")).toBe(true);
+    expect(result.verification.state).toBe("passed");
+  });
+
   it("executes a local plan without inventing business facts", () => {
     const result = runIntelligencePipeline("Create a business plan");
     expect(result.intent.kind).toBe("plan");
