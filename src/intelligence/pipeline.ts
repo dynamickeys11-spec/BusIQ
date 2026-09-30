@@ -54,6 +54,9 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
       !(["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(item.id) && options.businessEvidence?.length),
   );
   const actionBlocked = actionDecision?.state === "blocked" && actionDecision.action.availability === "unavailable";
+  const liveEvidenceMissing =
+    (intent.needsExternalResearch && !(options.externalEvidence?.length)) ||
+    (intent.needsBusinessData && !(options.businessEvidence?.length));
   const blockedRouting = routing.filter(
     item => item.state === "blocked" &&
       !(item.capabilityId === "external-research" && options.externalEvidence?.length) &&
@@ -84,7 +87,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
     });
   }
 
-  if (unavailable.length || blockedRouting.length || actionBlocked) {
+  if (unavailable.length || blockedRouting.length || actionBlocked || liveEvidenceMissing) {
     return finalizeResult({
       ...base,
       status: "needs_connection",
@@ -97,7 +100,13 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
       answer: {
         type: "blocked",
         headline: "The request is understood, but the required execution path is not connected yet.",
-        detail: [...unavailable.map(item => item.reason), ...blockedRouting.map(item => item.reason), ...(actionBlocked && actionDecision ? [actionDecision.reason] : [])].join(" ") + " BUSIQ will not invent the missing capability, connection, or action result." + contextSummary,
+        detail: [
+        ...unavailable.map(item => item.reason),
+        ...blockedRouting.map(item => item.reason),
+        ...(actionBlocked && actionDecision ? [actionDecision.reason] : []),
+        ...(intent.needsExternalResearch && !options.externalEvidence?.length ? ["Live external research evidence is required before BUSIQ can complete this request."] : []),
+        ...(intent.needsBusinessData && !options.businessEvidence?.length ? ["Connected business evidence is required before BUSIQ can complete this request."] : []),
+      ].join(" ") + " BUSIQ will not invent the missing capability, connection, or action result." + contextSummary,
         nextAction: "Connect the required source or implement/connect the required execution capability.",
       },
       trace: ["Normalize request", "Resolve required capabilities", "Route to suitable tools", "Plan research", "Verify available evidence", "Stop before unsupported execution"],
@@ -166,7 +175,15 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   return finalizeResult({
     ...base,
     status: "ready",
-    execution: executionRecords,
+    execution: [
+      ...executionRecords,
+      ...(externalEvidence.length
+        ? [{ toolId: "external-research-connector", state: "success" as const, output: { sourceCount: externalEvidence.length } }]
+        : []),
+      ...(businessEvidence.length
+        ? [{ toolId: "business-data-connector", state: "success" as const, output: { recordCount: businessEvidence.length } }]
+        : []),
+    ],
     evidence: allEvidence,
     verification,
     researchAssessment,
