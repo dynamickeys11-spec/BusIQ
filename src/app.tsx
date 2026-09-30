@@ -84,6 +84,7 @@ export default function App() {
   );
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
   const [userEmail, setUserEmail] = useState("");
+  const [businessId, setBusinessId] = useState("");
 
   useEffect(() => localStorage.setItem(profileKey, JSON.stringify(profile)), [profile]);
   useEffect(() => localStorage.setItem(workKey, JSON.stringify(work)), [work]);
@@ -98,10 +99,25 @@ export default function App() {
     void supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
       setUserEmail(data.session?.user.email ?? "");
+      if (data.session) {
+        const { data: businesses } = await supabase.from("businesses").select("id,name").limit(2);
+        if (businesses?.length === 1) {
+          setBusinessId(businesses[0].id);
+          if (!profile.name && businesses[0].name) setProfile((current) => ({ ...current, name: businesses[0].name }));
+        } else setBusinessId("");
+      } else setBusinessId("");
       setAuthReady(true);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUserEmail(session?.user.email ?? "");
+      if (session) {
+        void supabase.from("businesses").select("id,name").limit(2).then(({ data: businesses }) => {
+          if (businesses?.length === 1) {
+            setBusinessId(businesses[0].id);
+            if (!profile.name && businesses[0].name) setProfile((current) => ({ ...current, name: businesses[0].name }));
+          } else setBusinessId("");
+        });
+      } else setBusinessId("");
       setAuthReady(true);
     });
     return () => {
@@ -141,6 +157,7 @@ export default function App() {
   async function signOut() {
     await getSupabase().auth.signOut();
     setUserEmail("");
+    setBusinessId("");
   }
 
   function navigate(next: Experience) {
@@ -155,7 +172,7 @@ export default function App() {
     setPipelineError("");
 
     try {
-      const result = await requestIntelligence(trimmed, context);
+      const result = await requestIntelligence(trimmed, context, businessId || undefined);
       setPipeline(result);
 
       if (result.status !== "needs_clarification") {
@@ -322,6 +339,8 @@ export default function App() {
             setNotifications={setNotifications}
             savedMessage={savedMessage}
             setSavedMessage={setSavedMessage}
+            businessId={businessId}
+            setBusinessId={setBusinessId}
           />
         )}
       </section>
@@ -672,6 +691,8 @@ function Account({
   setNotifications,
   savedMessage,
   setSavedMessage,
+  businessId,
+  setBusinessId,
 }: {
   profile: BusinessProfile;
   setProfile: (value: BusinessProfile) => void;
@@ -679,7 +700,29 @@ function Account({
   setNotifications: (value: NotificationPreferences) => void;
   savedMessage: string;
   setSavedMessage: (value: string) => void;
+  businessId: string;
+  setBusinessId: (value: string) => void;
 }) {
+  const [savingBusiness, setSavingBusiness] = useState(false);
+
+  async function saveBusiness(event: FormEvent) {
+    event.preventDefault();
+    setSavingBusiness(true);
+    setSavedMessage("");
+    const slug = profile.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+    const { data, error } = await getSupabase().rpc("create_business", {
+      business_name: profile.name.trim(),
+      business_slug: slug,
+    });
+    if (error || !data?.id) {
+      setSavedMessage(error?.message || "BUSIQ could not create the business workspace.");
+    } else {
+      setBusinessId(data.id);
+      setSavedMessage("Business workspace created.");
+    }
+    setSavingBusiness(false);
+    window.setTimeout(() => setSavedMessage(""), 3000);
+  }
   return (
     <Page eyebrow="BUSIQ · ACCOUNT" title="Keep your context accurate." intro="Business identity, connections and preferences live here. BUSIQ does not claim services that are not connected.">
       <form className="profile-form premium-form" onSubmit={(event) => {
