@@ -85,7 +85,7 @@ export default function App() {
   );
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
   const [userEmail, setUserEmail] = useState("");
-  const [businessId, setBusinessId] = useState("");
+  const [businessId, setBusinessId] = useState("");\n  const [workspaceHydrated, setWorkspaceHydrated] = useState(false);
 
   useEffect(() => localStorage.setItem(profileKey, JSON.stringify(profile)), [profile]);
   useEffect(() => localStorage.setItem(workKey, JSON.stringify(work)), [work]);
