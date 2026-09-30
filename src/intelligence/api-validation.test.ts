@@ -12,6 +12,20 @@ describe("API request validation", () => {
   it("accepts bounded requests", () => {
     expect(validateRequestBody({ request: "Why are sales down?" }, 400).ok).toBe(true);
   });
+  it("accepts a valid business scope", () => {
+    const result = validateRequestBody({
+      request: "Why are sales down?",
+      businessId: "550e8400-e29b-41d4-a716-446655440000",
+    }, 400);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.businessId).toBe("550e8400-e29b-41d4-a716-446655440000");
+  });
+  it("rejects malformed business scope", () => {
+    expect(validateRequestBody({
+      request: "Why are sales down?",
+      businessId: "not-a-uuid",
+    }, 400)).toMatchObject({ ok: false, status: 400 });
+  });
   it("accepts a valid local context payload", () => {
     const result = validateRequestBody({
       request: "Why are sales down?",
