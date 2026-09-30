@@ -1,4 +1,6 @@
 import { defaultUsagePolicy, runIntelligencePipeline } from "../src/intelligence";
+import { resolveIntent } from "../src/bie/intent";
+import { createFreeWebResearchProvider } from "../src/providers";
 import { validateRequestBody } from "../src/intelligence/api-validation";
 import { getAuthenticatedUser, getAuthorizedBusinessIds } from "./auth";
 
@@ -55,12 +57,49 @@ export default async function handler(request: Request): Promise<Response> {
       return json({ error: validation.error, requestId }, validation.status);
     }
 
+    let externalEvidence: import("../src/intelligence/types").EvidenceItem[] = [];
+    const resolvedIntent = resolveIntent(validation.request);
+
+    if (resolvedIntent.needsExternalResearch) {
+      try {
+        const research = await createFreeWebResearchProvider().search({
+          query: validation.request,
+          intent: resolvedIntent.kind,
+          entities: resolvedIntent.context?.entities ?? [],
+          time: resolvedIntent.context?.time,
+          sourceClasses: ["external-research"],
+        });
+
+        externalEvidence = research.claims.map((claim, index) => ({
+          id: "research-" + index + "-" + crypto.randomUUID(),
+          kind: "retrieved" as const,
+          label: research.sources.find((source) => claim.sourceIds.includes(source.id))?.title ?? "External research source",
+          detail: claim.statement,
+          source: research.sources.find((source) => claim.sourceIds.includes(source.id))?.url ?? research.provider,
+          authority: research.sources.find((source) => claim.sourceIds.includes(source.id))?.authority === "primary" ? "connected-source" as const : "unknown" as const,
+          freshness: "current" as const,
+          verification: "unverified" as const,
+          relevance: "direct" as const,
+          quality: "limited" as const,
+        }));
+      } catch (error) {
+        console.warn(JSON.stringify({
+          event: "api.intelligence.research_unavailable",
+          requestId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        }));
+      }
+    }
+
     if (authentication.isAnonymous) {
       if (validation.businessId) {
         return json({ error: "Sign in or create an account before accessing a business workspace.", requestId }, 403);
       }
 
-      const result = runIntelligencePipeline(validation.request, { context: validation.context });
+      const result = runIntelligencePipeline(validation.request, {
+        context: validation.context,
+        externalEvidence,
+      });
       console.info(JSON.stringify({
         event: "api.intelligence.guest_completed",
         requestId,
@@ -133,7 +172,10 @@ export default async function handler(request: Request): Promise<Response> {
         ? { business: [], user: [], conversation: [], work: [], decisions: [], knowledge: learningEntries, provenance: [] }
         : undefined;
 
-    const result = runIntelligencePipeline(validation.request, { context: enrichedContext });
+    const result = runIntelligencePipeline(validation.request, {
+      context: enrichedContext,
+      externalEvidence,
+    });
 
     const { error: historyError } = await authentication.supabase.from("intelligence_runs").insert({
       business_id: businessId,
