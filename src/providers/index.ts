@@ -23,3 +23,4 @@ export {
 
 export { FreeWebResearchProvider, createFreeWebResearchProvider } from "./free-research";
 export { SupabaseEdgeModelProvider } from "./supabase-edge-model";
+export { WebhookActionProvider } from "./webhook-action";
