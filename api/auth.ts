@@ -14,7 +14,7 @@ export type AuthenticatedSupabase = {
 
 export async function getAuthenticatedUser(
   request: Request,
-): Promise<{ user: User | null; supabase: ServerSupabase | null; error: string | null }> {
+): Promise<{ user: User | null; supabase: ServerSupabase | null; isAnonymous: boolean; error: string | null }> {
   const authorization = request.headers.get("authorization");
   const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
 
