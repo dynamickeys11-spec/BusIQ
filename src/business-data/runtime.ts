@@ -54,7 +54,9 @@ export async function retrieveBusinessEvidence(
 
   if (error) throw new Error("Business data retrieval failed: " + error.message);
 
-  return (data ?? []).map((row: Record<string, unknown>, index) => ({
+  const rows = (data ?? []) as unknown as Array<Record<string, unknown>>;
+
+  return rows.map((row, index) => ({
     id: "business-" + domain + "-" + index + "-" + String(row.id),
     domain,
     detail: JSON.stringify(row),
