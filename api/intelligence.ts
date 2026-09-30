@@ -1,5 +1,6 @@
 import { consumeUsage, defaultUsagePolicy, runIntelligencePipeline } from "../src/intelligence";
 import { validateRequestBody } from "../src/intelligence/api-validation";
+import { getAuthenticatedUser } from "./auth";
 
 const rateBuckets = new Map<string, { startedAt: number; count: number }>();
 
@@ -13,7 +14,10 @@ export default async function handler(request: Request): Promise<Response> {
     return json({ error: "Method not allowed", requestId }, 405, { allow: "POST" });
   }
 
-  const usage = consumeUsage(rateBuckets, rateKey, startedAt, defaultUsagePolicy);
+  const authentication = await getAuthenticatedUser(request);
+  if (!authentication.user) return json({ error: authentication.error || "Authentication required", requestId }, 401);
+
+  const usage = consumeUsage(rateBuckets, authentication.user.id, startedAt, defaultUsagePolicy);
   if (!usage.allowed) {
     console.warn(JSON.stringify({ event: "api.intelligence.rate_limited", requestId }));
     return json({ error: "Rate limit exceeded", requestId }, 429, { "retry-after": String(usage.retryAfterSeconds) });
