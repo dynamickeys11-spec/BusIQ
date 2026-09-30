@@ -1,6 +1,25 @@
+import type { ContextState } from "./context";
+
 export type ApiValidationResult =
-  | { ok: true; request: string }
+  | { ok: true; request: string; context?: ContextState }
   | { ok: false; status: 400 | 413 | 415; error: string };
+
+function isContextEntry(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const entry = value as Record<string, unknown>;
+  return typeof entry.id === "string"
+    && typeof entry.kind === "string"
+    && typeof entry.key === "string"
+    && typeof entry.value === "string"
+    && typeof entry.createdAt === "string";
+}
+
+function isContextState(value: unknown): value is ContextState {
+  if (!value || typeof value !== "object") return false;
+  const state = value as Record<string, unknown>;
+  return ["business", "user", "conversation", "work", "decisions", "knowledge", "provenance"]
+    .every((key) => Array.isArray(state[key]) && (state[key] as unknown[]).every(isContextEntry));
+}
 
 export function validateIntelligenceRequest(
   request: Request,
@@ -22,5 +41,13 @@ export function validateRequestBody(body: unknown, maxRequestChars: number): Api
   if (request.length > maxRequestChars) {
     return { ok: false, status: 413, error: "Request is too large" };
   }
-  return { ok: true, request };
+  const context = typeof body === "object" && body !== null && "context" in body
+    ? (body as { context?: unknown }).context
+    : undefined;
+
+  if (context !== undefined && !isContextState(context)) {
+    return { ok: false, status: 400, error: "Context payload is invalid" };
+  }
+
+  return { ok: true, request, context: context as ContextState | undefined };
 }
