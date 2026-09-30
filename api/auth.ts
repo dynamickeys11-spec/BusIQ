@@ -1,25 +1,58 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
-const supabaseUrl = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.SUPABASE_URL || (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.VITE_SUPABASE_URL;
-const supabasePublishableKey = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.SUPABASE_PUBLISHABLE_KEY || (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+type ServerSupabase = SupabaseClient;
 
-export async function getAuthenticatedUser(request: Request) {
+const runtimeProcess = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
+const supabaseUrl = runtimeProcess?.SUPABASE_URL || runtimeProcess?.VITE_SUPABASE_URL;
+const supabasePublishableKey = runtimeProcess?.SUPABASE_PUBLISHABLE_KEY || runtimeProcess?.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+export type AuthenticatedSupabase = {
+  user: User;
+  supabase: ServerSupabase;
+};
+
+export async function getAuthenticatedUser(
+  request: Request,
+): Promise<{ user: User | null; supabase: ServerSupabase | null; error: string | null }> {
   const authorization = request.headers.get("authorization");
   const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
 
   if (!token || !supabaseUrl || !supabasePublishableKey) {
-    return { user: null, error: "Authentication is required." };
+    return { user: null, supabase: null, error: "Authentication is required." };
   }
 
   const supabase = createClient(supabaseUrl, supabasePublishableKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
 
-  const { data, error } = await supabase.auth.getUser();
+  const { data, error } = await supabase.auth.getUser(token);
   if (error || !data.user) {
-    return { user: null, error: "Authentication is invalid or expired." };
+    return { user: null, supabase: null, error: "Authentication is invalid or expired." };
   }
 
-  return { user: data.user, error: null };
+  return { user: data.user, supabase, error: null };
+}
+
+export async function getAuthorizedBusinessIds(
+  supabase: ServerSupabase,
+  userId: string,
+): Promise<{ businessIds: string[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from("business_members")
+    .select("business_id")
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error(JSON.stringify({
+      event: "auth.business_scope_failed",
+      error: error.message,
+    }));
+    return { businessIds: [], error: "Unable to resolve business access." };
+  }
+
+  return {
+    businessIds: [...new Set((data ?? []).map((row) => row.business_id).filter((id): id is string => typeof id === "string"))],
+    error: null,
+  };
 }
