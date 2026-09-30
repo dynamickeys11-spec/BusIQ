@@ -249,6 +249,22 @@ export default function App() {
     window.setTimeout(() => setSavedMessage(""), 2200);
   }
 
+  if (isSupabaseConfigured && !authReady) {
+    return (
+      <main className="auth-shell">
+        <section className="auth-card">
+          <span className="section-kicker">BUSIQ</span>
+          <h1>Preparing your workspace</h1>
+          <p>Checking your secure BUSIQ session.</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (isSupabaseConfigured && !userEmail) {
+    return <AuthScreen />;
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
