@@ -1,6 +1,7 @@
 import { defaultUsagePolicy, runIntelligencePipeline } from "../src/intelligence";
 import { resolveIntent } from "../src/bie/intent";
 import { createFreeWebResearchProvider, SupabaseEdgeModelProvider } from "../src/providers";
+import type { BusinessDomain } from "../src/business-data";
 import { validateRequestBody } from "../src/intelligence/api-validation";
 import { getAuthenticatedUser, getAuthorizedBusinessIds } from "./auth";
 
@@ -150,6 +151,41 @@ export default async function handler(request: Request): Promise<Response> {
       return json({ error, requestId, code: scope.businessIds.length === 0 ? "BUSINESS_SETUP_REQUIRED" : "BUSINESS_SELECTION_REQUIRED" }, 409);
     }
 
+    let businessEvidence: import("../src/intelligence/types").EvidenceItem[] = [];
+    if (resolvedIntent.needsBusinessData) {
+      const domains = resolvedIntent.requiredCapabilities.filter((capability): capability is BusinessDomain =>
+        ["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(capability),
+      );
+
+      try {
+        const { retrieveBusinessEvidence } = await import("../src/business-data/runtime");
+        const retrieved = [];
+        for (const domain of [...new Set(domains)]) {
+          const rows = await retrieveBusinessEvidence(authentication.supabase, businessId, domain);
+          retrieved.push(...rows);
+        }
+        businessEvidence = retrieved.map((item) => ({
+          id: item.id,
+          kind: "retrieved" as const,
+          label: item.domain + " record",
+          detail: item.detail,
+          source: item.source,
+          authority: "connected-source" as const,
+          freshness: "current" as const,
+          verification: "verified" as const,
+          relevance: "direct" as const,
+          quality: "strong" as const,
+        }));
+      } catch (error) {
+        console.warn(JSON.stringify({
+          event: "api.intelligence.business_data_unavailable",
+          requestId,
+          businessId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        }));
+      }
+    }
+
     const context = validation.context
       ? {
           ...validation.context,
@@ -212,6 +248,7 @@ export default async function handler(request: Request): Promise<Response> {
     let result = runIntelligencePipeline(validation.request, {
       context: enrichedContext,
       externalEvidence,
+      businessEvidence,
     });
 
     try {
