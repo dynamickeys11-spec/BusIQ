@@ -12,4 +12,27 @@ describe("API request validation", () => {
   it("accepts bounded requests", () => {
     expect(validateRequestBody({ request: "Why are sales down?" }, 400).ok).toBe(true);
   });
+  it("accepts a valid local context payload", () => {
+    const result = validateRequestBody({
+      request: "Why are sales down?",
+      context: {
+        business: [{ id: "1", kind: "business", key: "name", value: "Example", createdAt: "2026-09-30T00:00:00.000Z" }],
+        user: [],
+        conversation: [],
+        work: [],
+        decisions: [],
+        knowledge: [],
+        provenance: [],
+      },
+    }, 400);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.context?.business[0]?.value).toBe("Example");
+  });
+  it("rejects malformed context payloads", () => {
+    expect(validateRequestBody({
+      request: "Why are sales down?",
+      context: { business: "not-an-array" },
+    }, 400)).toMatchObject({ ok: false, status: 400 });
+  });
 });
