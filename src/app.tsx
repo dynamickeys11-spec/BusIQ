@@ -7,7 +7,7 @@ import {
 } from "./intelligence";
 import { requestIntelligence } from "./intelligence-api";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
-import { completePersistedWork, loadBusinessWorkspace, persistBusinessContext, persistIntelligenceRun, persistLibraryItem, persistWork } from "./workspace-persistence";
+import { completePersistedWork, loadBusinessWorkspace, persistBusinessContext, persistLibraryItem, persistWork } from "./workspace-persistence";
 
 type Experience = "Home" | "Work" | "Business" | "Library" | "Account";
 type BusinessProfile = { name: string; type: string; location: string };
