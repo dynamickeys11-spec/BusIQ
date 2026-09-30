@@ -9,6 +9,8 @@ Audit commit: `f088a13e2f8a44e9bf12f713d8b06e643bcf6bf2`
 - Supabase is an implementation provider for identity, database persistence, RLS and selected backend functions.
 - External AI, research and connector providers must sit behind provider interfaces; provider-specific APIs must not leak through the product contract.
 - Every authenticated business operation is business-scoped.
+- Guest intelligence is allowed through an anonymous Supabase Auth session; guests cannot access business workspaces or business-private memory.
+- Persistent business infrastructure requires a permanent account.
 - Read operations and write/action operations are separate.
 - Action execution requires preview, confirmation and durable audit.
 - A capability is not considered production-ready merely because a TypeScript interface exists.
@@ -26,7 +28,7 @@ Audit commit: `f088a13e2f8a44e9bf12f713d8b06e643bcf6bf2`
 |---|---:|---|---|
 | `/api/health` | GET | GREEN | `api/health.ts` |
 | `/api/backend-status` | GET | YELLOW | `api/backend-status.ts`; readiness payload is stale and must be updated |
-| `/api/intelligence` | POST | YELLOW | `api/intelligence.ts`; authenticated, business-scoped, rate-limited and durably persisted, but deterministic intelligence is not yet backed by a production model/research provider |
+| `/api/intelligence` | POST | YELLOW | `api/intelligence.ts`; guest-safe and authenticated paths share the secure API boundary; authenticated business requests are scoped, rate-limited and persisted; live model/research runtime remains a release gate |
 | `/api/auth` | — | N/A | `api/auth.ts` is an authentication helper, not a complete public auth route; client auth uses Supabase Auth directly |
 
 ## Identity domain
@@ -37,6 +39,8 @@ Audit commit: `f088a13e2f8a44e9bf12f713d8b06e643bcf6bf2`
 | Sign in | Supabase Auth client | GREEN foundation |
 | Session | Supabase Auth client | GREEN foundation |
 | Sign out | Supabase Auth client | GREEN foundation |
+| Guest session | Supabase anonymous Auth session | GREEN foundation |
+| Guest-to-account upgrade | Supabase identity linking / account flow | YELLOW |
 | Password reset | Supabase Auth | RED |
 | Magic link / OTP | Supabase Auth | RED |
 | Social/SSO | Supabase Auth | RED |
@@ -84,23 +88,24 @@ The application should not invent duplicate authentication endpoints unless a se
 | Evidence model | Internal pipeline | GREEN |
 | Verification | Internal pipeline | GREEN |
 | Answer-quality validation | Internal pipeline | GREEN |
-| Production model provider | `ModelProvider` abstraction needed | RED |
-| Live web research | `ResearchProvider` abstraction needed | RED |
-| Web search | Provider adapter needed | RED |
-| Source retrieval/extraction | Provider/service adapter needed | RED |
-| External claim verification | Provider/service adapter needed | RED |
+| Production/local model provider | `ModelProvider` + Ollama/Supabase Edge adapter | YELLOW |
+| Live web research | Free web research provider | YELLOW |
+| Web search | DuckDuckGo HTML adapter | YELLOW |
+| Source retrieval/extraction | Server-side research extractor | YELLOW |
+| External claim verification | Evidence verification pipeline | YELLOW |
 | Streaming intelligence | Future | RED |
 
 ## Knowledge domain
 
 | Capability | Contract | Status |
 |---|---|---|
-| File upload | Storage contract | RED |
-| Document extraction | Processing contract | RED |
-| Chunking | Knowledge pipeline | RED |
-| Embeddings | Embedding provider interface | RED |
-| Semantic retrieval | Knowledge search contract | RED |
-| Business knowledge index | Knowledge pipeline | RED |
+| Text/Markdown/CSV/JSON ingestion | `POST /api/knowledge` | YELLOW |
+| File upload | Storage contract | YELLOW foundation |
+| Document extraction | Processing contract | YELLOW foundation; PDF/DOCX worker still required |
+| Chunking | Knowledge pipeline | GREEN foundation |
+| Embeddings | Supabase `busiq-embed` | GREEN foundation |
+| Semantic retrieval | `match_knowledge_chunks` | GREEN foundation |
+| Business knowledge index | Permission-aware knowledge chunks | YELLOW |
 
 ## Connector domain
 
@@ -108,17 +113,18 @@ BUSIQ should expose a stable connector contract rather than expose provider-spec
 
 | Capability | Status |
 |---|---|
-| Connector registry | RED |
+| Connector registry | YELLOW foundation |
 | OAuth/credential lifecycle | RED |
-| Connector health | RED |
+| Connector health | YELLOW foundation |
 | Connector sync | RED |
-| Normalized sales data | RED |
-| Normalized customer data | RED |
-| Normalized financial data | RED |
-| Normalized product data | RED |
-| Normalized inventory data | RED |
-| Normalized marketing data | RED |
-| Normalized operations data | RED |
+| CSV business-data import | YELLOW |
+| Normalized sales data | YELLOW |
+| Normalized customer data | YELLOW |
+| Normalized financial data | YELLOW |
+| Normalized product data | YELLOW |
+| Normalized inventory data | YELLOW |
+| Normalized marketing data | YELLOW |
+| Normalized operations data | YELLOW |
 | Inbound webhooks | RED |
 
 ## Action domain
@@ -127,11 +133,11 @@ BUSIQ should expose a stable connector contract rather than expose provider-spec
 |---|---|
 | Action model | GREEN |
 | Action safety checks | GREEN |
-| Action preview | YELLOW |
-| User confirmation | YELLOW |
-| Durable action execution | RED |
-| Provider adapters | RED |
-| Durable action audit storage | RED |
+| Action preview | YELLOW foundation |
+| User confirmation | YELLOW foundation |
+| Durable action execution | YELLOW foundation; requires server secret + configured provider |
+| Provider adapters | YELLOW — configurable HTTPS webhook provider |
+| Durable action audit storage | YELLOW — schema + server-only audit boundary |
 | Action history API | RED |
 
 ## Platform domain
@@ -144,7 +150,7 @@ BUSIQ should expose a stable connector contract rather than expose provider-spec
 | Distributed rate limiting | GREEN foundation |
 | Rate-limit failure handling | GREEN |
 | Durable cache | RED |
-| Background job queue | RED |
+| Background job queue | YELLOW foundation — schema exists; worker/cron still required |
 | Job status API | RED |
 | Usage accounting | YELLOW foundation |
 | Billing API | RED |
@@ -180,16 +186,17 @@ BUSIQ must not merge `feat/intelligence-core` to `main` until all critical gates
 
 ## Immediate build order
 
-1. Correct the stale backend-status contract.
+1. Enable and verify Supabase anonymous sign-ins for guest-first access.
 2. Verify CI and Vercel on the current commit.
 3. Complete runtime auth/business/persistence/PWA verification.
-4. Add the production model-provider interface and adapter.
-5. Add the research/search provider interface and adapter.
-6. Add evidence/source persistence where required.
-7. Add connector framework.
-8. Add action execution only after connector and confirmation infrastructure are proven.
-9. Add background jobs/cache/knowledge indexing.
-10. Re-run the complete readiness audit before release.
+4. Run real Ollama inference through the BUSIQ model path.
+5. Verify free research retrieval, extraction and evidence verification.
+6. Apply and verify normalized business-data + knowledge migrations.
+7. Verify CSV business-data import and semantic business retrieval.
+8. Configure and verify the durable action audit secret and action provider.
+9. Add PDF/DOCX extraction worker and background job processing.
+10. Build real OAuth connectors, outcome calibration and benchmark gates.
+11. Re-run the complete readiness audit before release.
 
 ## Important architectural boundary
 
