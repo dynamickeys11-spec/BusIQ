@@ -10,10 +10,10 @@ export default function handler(request: Request): Response {
 
   const status: BackendStatus = {
     capabilities: [
-      { resource: "database", readiness: "available", provider: "Supabase Postgres", note: "Durable business, work, library, context and intelligence-run persistence is connected." },
-      { resource: "auth", readiness: "available", provider: "Supabase Auth", note: "Authenticated sessions and server-side JWT verification are connected." },
-      { resource: "business-data", readiness: "not-configured", note: "No external live business-data connector is connected yet." },
-      { resource: "audit-log", readiness: "configured", provider: "Supabase Postgres", note: "Action audit logic exists, but durable action-event storage and execution are not yet connected." },
+      { resource: "database", readiness: "available", provider: "Supabase Postgres", note: "Durable business, work, library, context, intelligence history, knowledge and normalized business-data contracts are defined; latest domain migration still requires live verification." },
+      { resource: "auth", readiness: "available", provider: "Supabase Auth", note: "Permanent and anonymous sessions are supported; permanent accounts unlock business persistence." },
+      { resource: "business-data", readiness: "configured", provider: "BUSIQ normalized data + CSV import", note: "Normalized customer, sales, money, product, inventory, supplier, people, operations, project and marketing contracts are present; OAuth/live connectors remain unconfigured." },
+      { resource: "audit-log", readiness: "configured", provider: "Supabase Postgres", note: "Durable action-event schema and server-only audit boundary exist; execution remains disabled until the secret key and action provider are configured." },
     ],
   };
 
