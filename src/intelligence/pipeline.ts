@@ -115,6 +115,11 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
 
   const execution = routing
     .filter(route => route.state === "selected" && route.selectedToolId)
+    .filter(route => !(
+      (route.capabilityId === "business-data-retrieval" && businessEvidence.length) ||
+      (route.capabilityId === "external-research" && externalEvidence.length) ||
+      (["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(route.capabilityId) && businessEvidence.length)
+    ))
     .map(route => executeTool({
       toolId: route.selectedToolId as string,
       request: normalized,
