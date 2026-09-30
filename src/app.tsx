@@ -96,7 +96,7 @@ export default function App() {
     if (!isSupabaseConfigured) return;
     const supabase = getSupabase();
     let active = true;
-    void supabase.auth.getSession().then(({ data }) => {
+    void supabase.auth.getSession().then(async ({ data }) => {
       if (!active) return;
       setUserEmail(data.session?.user.email ?? "");
       if (data.session) {
