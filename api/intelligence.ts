@@ -1,6 +1,6 @@
 import { defaultUsagePolicy, runIntelligencePipeline } from "../src/intelligence";
 import { resolveIntent } from "../src/bie/intent";
-import { createFreeWebResearchProvider } from "../src/providers";
+import { createFreeWebResearchProvider, SupabaseEdgeModelProvider } from "../src/providers";
 import { validateRequestBody } from "../src/intelligence/api-validation";
 import { getAuthenticatedUser, getAuthorizedBusinessIds } from "./auth";
 
@@ -104,8 +104,8 @@ export default async function handler(request: Request): Promise<Response> {
       try {
         const { getConfiguredModelProvider } = await import("../src/learning/runtime");
         const { generateModelAnswer } = await import("../src/intelligence/model-answer");
-        const provider = getConfiguredModelProvider();
-        if (provider) result = await generateModelAnswer(provider, result);
+        const provider = getConfiguredModelProvider() ?? new SupabaseEdgeModelProvider(authentication.supabase);
+        result = await generateModelAnswer(provider, result);
       } catch (error) {
         console.warn(JSON.stringify({
           event: "api.intelligence.guest_model_unavailable",
@@ -243,9 +243,10 @@ export default async function handler(request: Request): Promise<Response> {
 
     try {
       const { getConfiguredModelProvider, evaluateAndStoreLearning } = await import("../src/learning/runtime");
+      const evaluatorProvider = getConfiguredModelProvider() ?? new SupabaseEdgeModelProvider(authentication.supabase);
       await evaluateAndStoreLearning(
         authentication.supabase,
-        getConfiguredModelProvider(),
+        evaluatorProvider,
         businessId,
         validation.request,
         JSON.stringify(result.answer),
