@@ -34,6 +34,27 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.execution).toHaveLength(0);
   });
 
+  it("accepts externally retrieved evidence without treating missing research as connected business data", () => {
+    const result = runIntelligencePipeline("What are the latest market trends?", {
+      externalEvidence: [{
+        id: "research-1",
+        kind: "retrieved",
+        label: "Market source",
+        detail: "Verified source content.",
+        source: "https://example.com",
+        authority: "connected-source",
+        freshness: "current",
+        verification: "verified",
+        relevance: "direct",
+        quality: "strong",
+      }],
+    });
+    expect(result.status).toBe("ready");
+    expect(result.researchPlan.some((step) => step.id === "external-research" && step.status === "available")).toBe(true);
+    expect(result.evidence.some((item) => item.id === "research-1")).toBe(true);
+    expect(result.verification.state).toBe("passed");
+  });
+
   it("executes a local plan without inventing business facts", () => {
     const result = runIntelligencePipeline("Create a business plan");
     expect(result.intent.kind).toBe("plan");
