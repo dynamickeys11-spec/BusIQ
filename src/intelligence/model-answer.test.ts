@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { generateModelAnswer } from "./model-answer";
 import type { IntelligencePipelineResult } from "./types";
 
