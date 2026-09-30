@@ -22,3 +22,4 @@ export {
 } from "./openai-compatible";
 
 export { FreeWebResearchProvider, createFreeWebResearchProvider } from "./free-research";
+export { SupabaseEdgeModelProvider } from "./supabase-edge-model";
