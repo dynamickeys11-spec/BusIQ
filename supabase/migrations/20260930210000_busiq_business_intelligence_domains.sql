@@ -68,7 +68,7 @@ create table if not exists public.business_inventory (
   id uuid primary key default gen_random_uuid(),
   business_id uuid not null references public.businesses(id) on delete cascade,
   external_id text,
-  product_id uuid not null references public.business_products(id) on delete cascade,
+  product_id uuid references public.business_products(id) on delete set null,
   location text,
   quantity numeric not null,
   occurred_at timestamptz not null,
