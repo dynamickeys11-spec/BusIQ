@@ -7,6 +7,7 @@ import {
 } from "./intelligence";
 import { requestIntelligence } from "./intelligence-api";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
+import { completePersistedWork, loadBusinessWorkspace, persistBusinessContext, persistIntelligenceRun, persistLibraryItem, persistWork } from "./workspace-persistence";
 
 type Experience = "Home" | "Work" | "Business" | "Library" | "Account";
 type BusinessProfile = { name: string; type: string; location: string };
@@ -177,17 +178,19 @@ export default function App() {
 
       if (result.status !== "needs_clarification") {
         const workId = crypto.randomUUID();
-        setWork((current) => [
-          {
-            id: workId,
-            request: result.request,
-            intent: result.intent,
-            createdAt: new Date().toISOString(),
-            status: "active" as const,
-            pipeline: result,
-          },
-          ...current,
-        ].slice(0, 20));
+        const workItem = {
+          id: workId,
+          request: result.request,
+          intent: result.intent,
+          createdAt: new Date().toISOString(),
+          status: "active" as const,
+          pipeline: result,
+        };
+        if (isSupabaseConfigured && businessId) {
+          await persistWork(businessId, workItem);
+          await persistIntelligenceRun(businessId, result.request, result);
+        }
+        setWork((current) => [workItem, ...current].slice(0, 100));
         setContext((current) => ({
           ...current,
           work: mergeContext(current.work, [
@@ -220,20 +223,21 @@ export default function App() {
     setActive("Work");
   }
 
-  function saveNote() {
+  async function saveNote() {
     const title = request.trim();
     if (!title) return;
 
     const id = crypto.randomUUID();
-    setLibrary((current) => [
-      {
-        id,
-        title,
-        body: "Created from BUSIQ. This knowledge is currently stored locally on this device.",
-        createdAt: new Date().toISOString(),
-      },
-      ...current,
-    ]);
+    const item = {
+      id,
+      title,
+      body: "Created from BUSIQ.",
+      createdAt: new Date().toISOString(),
+    };
+    if (isSupabaseConfigured && businessId) {
+      await persistLibraryItem(businessId, item);
+    }
+    setLibrary((current) => [item, ...current].slice(0, 100));
     setContext((current) => ({
       ...current,
       knowledge: mergeContext(current.knowledge, [
@@ -648,7 +652,7 @@ function Library({
   setQuery: (value: string) => void;
   request: string;
   setRequest: (value: string) => void;
-  onSave: () => void;
+  onSave: () => void | Promise<void>;
   savedMessage: string;
 }) {
   const filtered = library.filter((item) =>
