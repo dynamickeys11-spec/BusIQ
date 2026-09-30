@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  runIntelligencePipeline,
   createContextEntry,
   mergeContext,
   type IntelligencePipelineResult,
   type ContextState,
 } from "./intelligence";
+import { requestIntelligence } from "./intelligence-api";
 
 type Experience = "Home" | "Work" | "Business" | "Library" | "Account";
 type BusinessProfile = { name: string; type: string; location: string };
@@ -73,6 +73,7 @@ export default function App() {
   );
   const [request, setRequest] = useState("");
   const [pipeline, setPipeline] = useState<IntelligencePipelineResult | null>(null);
+  const [pipelineError, setPipelineError] = useState("");
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
   const [online, setOnline] = useState(() => navigator.onLine);
   const [savedMessage, setSavedMessage] = useState("");
@@ -120,41 +121,58 @@ export default function App() {
     setSelectedWorkId(null);
   }
 
-  function submitRequest(value = request) {
+  async function submitRequest(value = request) {
     const trimmed = value.trim();
     if (!trimmed) return;
 
-    const result = runIntelligencePipeline(trimmed, { context });
-    setPipeline(result);
+    setPipelineError("");
 
-    if (result.status !== "needs_clarification") {
-      const workId = crypto.randomUUID();
-      setWork((current) => [
-        {
-          id: workId,
-          request: result.request,
-          intent: result.intent,
-          createdAt: new Date().toISOString(),
-          status: "active" as const,
-          pipeline: result,
-        },
-        ...current,
-      ].slice(0, 20));
-      setContext((current) => ({
-        ...current,
-        work: mergeContext(current.work, [
-          createContextEntry("work", workId, result.request, { workId }),
-        ]),
-      }));
+    try {
+      const result = await requestIntelligence(trimmed, context);
+      setPipeline(result);
+
+      if (result.status !== "needs_clarification") {
+        const workId = crypto.randomUUID();
+        setWork((current) => [
+          {
+            id: workId,
+            request: result.request,
+            intent: result.intent,
+            createdAt: new Date().toISOString(),
+            status: "active" as const,
+            pipeline: result,
+          },
+          ...current,
+        ].slice(0, 20));
+        setContext((current) => ({
+          ...current,
+          work: mergeContext(current.work, [
+            createContextEntry("work", workId, result.request, { workId }),
+          ]),
+        }));
+      }
+
+      setRequest("");
+      setActive("Home");
+    } catch (error) {
+      setPipelineError(error instanceof Error ? error.message : "BUSIQ could not complete the request.");
     }
-
-    setRequest("");
-    setActive("Home");
   }
 
-  function openWork(item: WorkItem) {
+  async function openWork(item: WorkItem) {
     setSelectedWorkId(item.id);
-    setPipeline(item.pipeline ?? runIntelligencePipeline(item.request, { context }));
+    setPipelineError("");
+
+    if (item.pipeline) {
+      setPipeline(item.pipeline);
+    } else {
+      try {
+        setPipeline(await requestIntelligence(item.request, context));
+      } catch (error) {
+        setPipelineError(error instanceof Error ? error.message : "BUSIQ could not restore this work.");
+      }
+    }
+
     setActive("Work");
   }
 
@@ -232,6 +250,7 @@ export default function App() {
             setRequest={setRequest}
             submitRequest={submitRequest}
             pipeline={pipeline}
+            pipelineError={pipelineError}
             activeWork={activeWork}
             work={work}
             onOpenWork={openWork}
@@ -314,6 +333,7 @@ function Home({
   setRequest: (value: string) => void;
   submitRequest: (value?: string) => void;
   pipeline: IntelligencePipelineResult | null;
+  pipelineError: string;
   activeWork: WorkItem[];
   work: WorkItem[];
   onOpenWork: (item: WorkItem) => void;
@@ -363,6 +383,7 @@ function Home({
         </div>
       </form>
 
+      {pipelineError && <div className="pipeline-error" role="alert">{pipelineError}</div>}
       {pipeline && <PipelineView result={pipeline} />}
 
       <section className="home-section">
