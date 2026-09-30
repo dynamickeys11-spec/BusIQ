@@ -19,21 +19,16 @@ export default async function handler(request: Request): Promise<Response> {
     return json({ error: "Rate limit exceeded", requestId }, 429, { "retry-after": String(usage.retryAfterSeconds) });
   }
 
-  if (!request.headers.get("content-type")?.includes("application/json")) {
-    console.warn(JSON.stringify({ event: "api.intelligence.rejected", requestId, reason: "content-type" }));
-    return json({ error: "Content-Type must be application/json", requestId }, 415);
-  }
-
   try {
-    const body = await request.json() as { request?: unknown };
-    if (typeof body.request !== "string" || !body.request.trim()) {
-      return json({ error: "A non-empty request string is required", requestId }, 400);
-    }
-    if (body.request.length > defaultUsagePolicy.maxRequestChars) {
-      return json({ error: "Request is too large", requestId }, 413);
+    const body = await request.json();
+    const validation = validateRequestBody(body, defaultUsagePolicy.maxRequestChars);
+    if (!validation.ok) {
+      return json({ error: validation.error, requestId }, validation.status);
     }
 
-    const result = runIntelligencePipeline(body.request);
+    const result = runIntelligencePipeline(validation.request, {
+      context: validation.context,
+    });
     console.info(JSON.stringify({
       event: "api.intelligence.completed",
       requestId,
