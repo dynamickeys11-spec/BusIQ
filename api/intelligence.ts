@@ -12,23 +12,25 @@ export default async function handler(request: Request): Promise<Response> {
   }
 
   const authentication = await getAuthenticatedUser(request);
-  if (!authentication.user || !authentication.supabase) {
-    return json({ error: authentication.error || "Authentication required", requestId }, 401);
-  }
 
-  const { data: usageRows, error: usageError } = await authentication.supabase.rpc("consume_distributed_rate_limit", {
-    p_user_id: authentication.user.id,
-    p_window_seconds: Math.ceil(defaultUsagePolicy.windowMs / 1000),
-    p_max_requests: defaultUsagePolicy.maxRequests,
-  });
-  if (usageError) {
-    console.error(JSON.stringify({ event: "api.intelligence.rate_limit_failed", requestId, userId: authentication.user.id, error: usageError.message }));
-    return json({ error: "Rate limiting is temporarily unavailable.", requestId }, 503);
-  }
-  const usage = usageRows?.[0];
-  if (!usage?.allowed) {
-    console.warn(JSON.stringify({ event: "api.intelligence.rate_limited", requestId, userId: authentication.user.id }));
-    return json({ error: "Rate limit exceeded", requestId }, 429, { "retry-after": String(usage?.retry_after_seconds ?? 1) });
+  const guestKey = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || request.headers.get("x-real-ip")
+    || "unknown";
+  const now = Date.now();
+  const guestWindowMs = 60_000;
+  const guestMaxRequests = 10;
+
+  if (!authentication.user || !authentication.supabase) {
+    const bucket = guestRateLimits.get(guestKey);
+    if (!bucket || now >= bucket.windowStartedAt + guestWindowMs) {
+      guestRateLimits.set(guestKey, { windowStartedAt: now, requestCount: 1 });
+    } else {
+      bucket.requestCount += 1;
+      if (bucket.requestCount > guestMaxRequests) {
+        const retryAfter = Math.max(1, Math.ceil((bucket.windowStartedAt + guestWindowMs - now) / 1000));
+        return json({ error: "Guest rate limit reached. Sign in or create an account for a persistent BUSIQ workspace.", requestId }, 429, { "retry-after": String(retryAfter) });
+      }
+    }
   }
 
   try {
@@ -36,6 +38,17 @@ export default async function handler(request: Request): Promise<Response> {
     const validation = validateRequestBody(body, defaultUsagePolicy.maxRequestChars);
     if (!validation.ok) {
       return json({ error: validation.error, requestId }, validation.status);
+    }
+
+    if (!authentication.user || !authentication.supabase) {
+      const result = runIntelligencePipeline(validation.request, { context: validation.context });
+      console.info(JSON.stringify({
+        event: "api.intelligence.guest_completed",
+        requestId,
+        status: result.status,
+        durationMs: Date.now() - startedAt,
+      }));
+      return json({ requestId, result }, 200);
     }
 
     const scope = await getAuthorizedBusinessIds(authentication.supabase, authentication.user.id);
@@ -163,6 +176,8 @@ export default async function handler(request: Request): Promise<Response> {
     return json({ error: "Internal server error", requestId }, 500);
   }
 }
+
+const guestRateLimits = new Map<string, { windowStartedAt: number; requestCount: number }>();
 
 function json(body: unknown, status: number, extraHeaders: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
