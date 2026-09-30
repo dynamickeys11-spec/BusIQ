@@ -10,10 +10,10 @@ export default function handler(request: Request): Response {
 
   const status: BackendStatus = {
     capabilities: [
-      { resource: "database", readiness: "not-configured", note: "No persistent database is connected yet." },
-      { resource: "auth", readiness: "not-configured", note: "No production identity provider is connected yet." },
-      { resource: "business-data", readiness: "not-configured", note: "No live business-data connector is connected yet." },
-      { resource: "audit-log", readiness: "not-configured", note: "Audit events are not durably persisted yet." },
+      { resource: "database", readiness: "available", provider: "Supabase Postgres", note: "Durable business, work, library, context and intelligence-run persistence is connected." },
+      { resource: "auth", readiness: "available", provider: "Supabase Auth", note: "Authenticated sessions and server-side JWT verification are connected." },
+      { resource: "business-data", readiness: "not-configured", note: "No external live business-data connector is connected yet." },
+      { resource: "audit-log", readiness: "configured", provider: "Supabase Postgres", note: "Action audit logic exists, but durable action-event storage and execution are not yet connected." },
     ],
   };
 
