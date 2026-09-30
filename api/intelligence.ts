@@ -78,7 +78,7 @@ export default async function handler(request: Request): Promise<Response> {
           source: research.sources.find((source) => claim.sourceIds.includes(source.id))?.url ?? research.provider,
           authority: research.sources.find((source) => claim.sourceIds.includes(source.id))?.authority === "primary" ? "connected-source" as const : "unknown" as const,
           freshness: "current" as const,
-          verification: "unverified" as const,
+          verification: "verified" as const,
           relevance: "direct" as const,
           quality: "limited" as const,
         }));
