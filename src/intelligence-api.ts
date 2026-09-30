@@ -10,6 +10,7 @@ type IntelligenceApiResponse = {
 export async function requestIntelligence(
   request: string,
   context: ContextState,
+  businessId?: string,
 ): Promise<IntelligencePipelineResult> {
   const { data } = await getSupabase().auth.getSession();
   const accessToken = data.session?.access_token;
@@ -24,7 +25,7 @@ export async function requestIntelligence(
       "content-type": "application/json",
       authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ request, context }),
+    body: JSON.stringify({ request, context, ...(businessId ? { businessId } : {}) }),
   });
 
   const payload = (await response.json().catch(() => ({}))) as IntelligenceApiResponse;
