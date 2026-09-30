@@ -15,15 +15,11 @@ export async function requestIntelligence(
   const { data } = await getSupabase().auth.getSession();
   const accessToken = data.session?.access_token;
 
-  if (!accessToken) {
-    throw new Error("Your BUSIQ session has expired. Please sign in again.");
-  }
-
   const response = await fetch("/api/intelligence", {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${accessToken}`,
+      ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
     },
     body: JSON.stringify({ request, context, ...(businessId ? { businessId } : {}) }),
   });
