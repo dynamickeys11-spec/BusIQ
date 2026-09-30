@@ -2,6 +2,7 @@ export type BusinessDomain =
   | "customers"
   | "sales"
   | "money"
+  | "expenses"
   | "products"
   | "inventory"
   | "operations"
