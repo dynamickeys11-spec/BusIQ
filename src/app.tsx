@@ -6,6 +6,7 @@ import {
   type ContextState,
 } from "./intelligence";
 import { requestIntelligence } from "./intelligence-api";
+import { getSupabase, isSupabaseConfigured } from "./supabase";
 
 type Experience = "Home" | "Work" | "Business" | "Library" | "Account";
 type BusinessProfile = { name: string; type: string; location: string };
@@ -81,12 +82,33 @@ export default function App() {
   const [notifications, setNotifications] = useState<NotificationPreferences>(() =>
     load(notificationKey, defaultNotificationPreferences),
   );
+  const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
+  const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => localStorage.setItem(profileKey, JSON.stringify(profile)), [profile]);
   useEffect(() => localStorage.setItem(workKey, JSON.stringify(work)), [work]);
   useEffect(() => localStorage.setItem(libraryKey, JSON.stringify(library)), [library]);
   useEffect(() => localStorage.setItem(contextKey, JSON.stringify(context)), [context]);
   useEffect(() => localStorage.setItem(notificationKey, JSON.stringify(notifications)), [notifications]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    const supabase = getSupabase();
+    let active = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setUserEmail(data.session?.user.email ?? "");
+      setAuthReady(true);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user.email ?? "");
+      setAuthReady(true);
+    });
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const entries = [
@@ -115,6 +137,11 @@ export default function App() {
   }, []);
 
   const activeWork = useMemo(() => work.filter((item) => item.status === "active"), [work]);
+
+  async function signOut() {
+    await getSupabase().auth.signOut();
+    setUserEmail("");
+  }
 
   function navigate(next: Experience) {
     setActive(next);
@@ -315,6 +342,29 @@ export default function App() {
       </nav>
     </main>
   );
+}
+
+function AuthScreen() {
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    const supabase = getSupabase();
+    const result = mode === "signin"
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password });
+    if (result.error) setError(result.error.message);
+    else if (mode === "signup" && !result.data.session) setError("Account created. Check your email to confirm your address, then sign in.");
+    setBusy(false);
+  }
+
+  return <main className="auth-shell"><section className="auth-card"><span className="section-kicker">BUSIQ</span><h1>{mode === "signin" ? "Enter your workspace" : "Create your BUSIQ account"}</h1><p>{mode === "signin" ? "Sign in to use your secure business workspace." : "Start with a secure account. Your business workspace will be created next."}</p><form onSubmit={submit} className="auth-form"><label>Email<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label><label>Password<input type="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required /></label>{error && <div className="pipeline-error" role="alert">{error}</div>}<button className="primary-action" type="submit" disabled={busy}>{busy ? "Working…" : mode === "signin" ? "Sign in" : "Create account"}</button></form><button className="text-button" type="button" onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); }}>{mode === "signin" ? "Create a new account" : "I already have an account"}</button></section></main>;
 }
 
 function Home({
