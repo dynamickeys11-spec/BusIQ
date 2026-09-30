@@ -96,10 +96,24 @@ export default async function handler(request: Request): Promise<Response> {
         return json({ error: "Sign in or create an account before accessing a business workspace.", requestId }, 403);
       }
 
-      const result = runIntelligencePipeline(validation.request, {
+      let result = runIntelligencePipeline(validation.request, {
         context: validation.context,
         externalEvidence,
       });
+
+      try {
+        const { getConfiguredModelProvider } = await import("../src/learning/runtime");
+        const { generateModelAnswer } = await import("../src/intelligence/model-answer");
+        const provider = getConfiguredModelProvider();
+        if (provider) result = await generateModelAnswer(provider, result);
+      } catch (error) {
+        console.warn(JSON.stringify({
+          event: "api.intelligence.guest_model_unavailable",
+          requestId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        }));
+      }
+
       console.info(JSON.stringify({
         event: "api.intelligence.guest_completed",
         requestId,
@@ -172,10 +186,24 @@ export default async function handler(request: Request): Promise<Response> {
         ? { business: [], user: [], conversation: [], work: [], decisions: [], knowledge: learningEntries, provenance: [] }
         : undefined;
 
-    const result = runIntelligencePipeline(validation.request, {
+    let result = runIntelligencePipeline(validation.request, {
       context: enrichedContext,
       externalEvidence,
     });
+
+    try {
+      const { getConfiguredModelProvider } = await import("../src/learning/runtime");
+      const { generateModelAnswer } = await import("../src/intelligence/model-answer");
+      const provider = getConfiguredModelProvider();
+      if (provider) result = await generateModelAnswer(provider, result);
+    } catch (error) {
+      console.warn(JSON.stringify({
+        event: "api.intelligence.model_unavailable",
+        requestId,
+        businessId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      }));
+    }
 
     const { error: historyError } = await authentication.supabase.from("intelligence_runs").insert({
       business_id: businessId,
