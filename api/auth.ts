@@ -60,3 +60,11 @@ export async function getAuthorizedBusinessIds(
     error: null,
   };
 }
+
+export function getAdminSupabase(): ServerSupabase | null {
+  const secretKey = runtimeProcess?.SUPABASE_SECRET_KEY || runtimeProcess?.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !secretKey) return null;
+  return createClient(supabaseUrl, secretKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+}
