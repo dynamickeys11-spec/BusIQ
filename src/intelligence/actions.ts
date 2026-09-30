@@ -39,6 +39,9 @@ export type ActionDecision =
   | { state: "ready"; action: ActionDefinition; confirmation: ActionConfirmation }
   | { state: "blocked"; action: ActionDefinition; reason: string; confirmation: ActionConfirmation };
 
+const runtimeProcess = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
+const webhookAvailable = Boolean(runtimeProcess?.BUSIQ_ACTION_WEBHOOK_URL);
+
 const actions: ActionDefinition[] = [
   {
     id: "create-local-plan",
@@ -61,7 +64,7 @@ const actions: ActionDefinition[] = [
     purpose: "Change a connected business record.",
     mode: "write",
     risk: "consequential",
-    availability: "unavailable",
+    availability: webhookAvailable ? "available" : "unavailable",
     sideEffect: "write",
     authorizationRequired: true,
     confirmationRequired: true,
