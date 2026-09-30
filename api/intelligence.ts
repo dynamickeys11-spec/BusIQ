@@ -1,8 +1,6 @@
-import { consumeUsage, defaultUsagePolicy, runIntelligencePipeline } from "../src/intelligence";
+import { defaultUsagePolicy, runIntelligencePipeline } from "../src/intelligence";
 import { validateRequestBody } from "../src/intelligence/api-validation";
 import { getAuthenticatedUser, getAuthorizedBusinessIds } from "./auth";
-
-const rateBuckets = new Map<string, { startedAt: number; count: number }>();
 
 export default async function handler(request: Request): Promise<Response> {
   const requestId = crypto.randomUUID();
@@ -18,10 +16,19 @@ export default async function handler(request: Request): Promise<Response> {
     return json({ error: authentication.error || "Authentication required", requestId }, 401);
   }
 
-  const usage = consumeUsage(rateBuckets, authentication.user.id, startedAt, defaultUsagePolicy);
-  if (!usage.allowed) {
+  const { data: usageRows, error: usageError } = await authentication.supabase.rpc("consume_distributed_rate_limit", {
+    p_user_id: authentication.user.id,
+    p_window_seconds: Math.ceil(defaultUsagePolicy.windowMs / 1000),
+    p_max_requests: defaultUsagePolicy.maxRequests,
+  });
+  if (usageError) {
+    console.error(JSON.stringify({ event: "api.intelligence.rate_limit_failed", requestId, userId: authentication.user.id, error: usageError.message }));
+    return json({ error: "Rate limiting is temporarily unavailable.", requestId }, 503);
+  }
+  const usage = usageRows?.[0];
+  if (!usage?.allowed) {
     console.warn(JSON.stringify({ event: "api.intelligence.rate_limited", requestId, userId: authentication.user.id }));
-    return json({ error: "Rate limit exceeded", requestId }, 429, { "retry-after": String(usage.retryAfterSeconds) });
+    return json({ error: "Rate limit exceeded", requestId }, 429, { "retry-after": String(usage?.retry_after_seconds ?? 1) });
   }
 
   try {
