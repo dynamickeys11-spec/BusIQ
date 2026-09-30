@@ -189,7 +189,6 @@ export default function App() {
         };
         if (isSupabaseConfigured && businessId) {
           await persistWork(businessId, workItem);
-          await persistIntelligenceRun(businessId, result.request, result);
         }
         setWork((current) => [workItem, ...current].slice(0, 100));
         setContext((current) => ({
