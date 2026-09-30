@@ -249,22 +249,6 @@ export default function App() {
     window.setTimeout(() => setSavedMessage(""), 2200);
   }
 
-  if (isSupabaseConfigured && !authReady) {
-    return (
-      <main className="auth-shell">
-        <section className="auth-card">
-          <span className="section-kicker">BUSIQ</span>
-          <h1>Preparing your workspace</h1>
-          <p>Checking your secure BUSIQ session.</p>
-        </section>
-      </main>
-    );
-  }
-
-  if (isSupabaseConfigured && !userEmail) {
-    return <AuthScreen />;
-  }
-
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -361,6 +345,8 @@ export default function App() {
             setSavedMessage={setSavedMessage}
             businessId={businessId}
             setBusinessId={setBusinessId}
+            userEmail={userEmail}
+            authReady={authReady}
           />
         )}
       </section>
@@ -381,6 +367,12 @@ export default function App() {
       </nav>
     </main>
   );
+}
+
+function AuthButton() {
+  const [open, setOpen] = useState(false);
+  if (!open) return <button className="primary-button" type="button" onClick={() => setOpen(true)}>Sign in or create account</button>;
+  return <AuthScreen />;
 }
 
 function AuthScreen() {
@@ -713,6 +705,8 @@ function Account({
   setSavedMessage,
   businessId,
   setBusinessId,
+  userEmail,
+  authReady,
 }: {
   profile: BusinessProfile;
   setProfile: (value: BusinessProfile) => void;
@@ -722,11 +716,17 @@ function Account({
   setSavedMessage: (value: string) => void;
   businessId: string;
   setBusinessId: (value: string) => void;
+  userEmail: string;
+  authReady: boolean;
 }) {
   const [savingBusiness, setSavingBusiness] = useState(false);
 
   async function saveBusiness(event: FormEvent) {
     event.preventDefault();
+    if (!userEmail) {
+      setSavedMessage("Create an account or sign in to save your business workspace.");
+      return;
+    }
     setSavingBusiness(true);
     setSavedMessage("");
     const slug = profile.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
@@ -745,6 +745,13 @@ function Account({
   }
   return (
     <Page eyebrow="BUSIQ · ACCOUNT" title="Keep your context accurate." intro="Business identity, connections and preferences live here. BUSIQ does not claim services that are not connected.">
+      {!authReady && <div className="truth-note">Checking account status…</div>}
+      {!userEmail && authReady && (
+        <div className="setup-callout">
+          <div><strong>You're using BUSIQ as a guest.</strong><p>Your questions and local work can be used without an account. Create an account or sign in to save a persistent business workspace.</p></div>
+          <AuthButton />
+        </div>
+      )}
       <form className="profile-form premium-form" onSubmit={saveBusiness}>
         <div className="form-title"><span>BUSINESS IDENTITY</span><strong>The basics BUSIQ can remember locally.</strong></div>
         <label>Business name<input value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} required /></label>
