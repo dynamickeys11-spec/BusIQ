@@ -13,6 +13,7 @@ const tableByDomain: Record<BusinessDomain, string> = {
   customers: "business_customers",
   sales: "business_sales",
   money: "business_money",
+  expenses: "business_money",
   products: "business_products",
   inventory: "business_inventory",
   operations: "business_operations",
