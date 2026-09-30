@@ -158,6 +158,7 @@ export default async function handler(request: Request): Promise<Response> {
       : undefined;
 
     let learningMemory: Array<{ id: string; exampleId: string; content: string; similarity: number }> = [];
+    let knowledgeMemory: Array<{ id: string; documentId: string; content: string; similarity: number }> = [];
     try {
       const { retrieveLearningMemory } = await import("../src/learning/runtime");
       learningMemory = await retrieveLearningMemory(authentication.supabase, businessId, validation.request);
@@ -170,6 +171,28 @@ export default async function handler(request: Request): Promise<Response> {
       }));
     }
 
+    try {
+      const { retrieveKnowledge } = await import("../src/knowledge/runtime");
+      knowledgeMemory = await retrieveKnowledge(authentication.supabase, businessId, validation.request);
+    } catch (error) {
+      console.warn(JSON.stringify({
+        event: "api.intelligence.knowledge_unavailable",
+        requestId,
+        businessId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      }));
+    }
+
+    const knowledgeEntries = knowledgeMemory.map((item) => ({
+      id: "knowledge-" + item.id,
+      kind: "knowledge" as const,
+      key: "knowledge-" + item.documentId,
+      value: item.content,
+      source: "BUSIQ business knowledge; reference only",
+      createdAt: new Date().toISOString(),
+      businessId,
+    }));
+
     const learningEntries = learningMemory.map((item) => ({
       id: "learning-" + item.id,
       kind: "knowledge" as const,
@@ -181,9 +204,9 @@ export default async function handler(request: Request): Promise<Response> {
     }));
 
     const enrichedContext = context
-      ? { ...context, knowledge: [...context.knowledge, ...learningEntries] }
-      : learningEntries.length
-        ? { business: [], user: [], conversation: [], work: [], decisions: [], knowledge: learningEntries, provenance: [] }
+      ? { ...context, knowledge: [...context.knowledge, ...learningEntries, ...knowledgeEntries] }
+      : learningEntries.length || knowledgeEntries.length
+        ? { business: [], user: [], conversation: [], work: [], decisions: [], knowledge: [...learningEntries, ...knowledgeEntries], provenance: [] }
         : undefined;
 
     let result = runIntelligencePipeline(validation.request, {
