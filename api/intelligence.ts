@@ -12,25 +12,40 @@ export default async function handler(request: Request): Promise<Response> {
   }
 
   const authentication = await getAuthenticatedUser(request);
-
-  const guestKey = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || request.headers.get("x-real-ip")
-    || "unknown";
-  const now = Date.now();
-  const guestWindowMs = 60_000;
-  const guestMaxRequests = 10;
-
   if (!authentication.user || !authentication.supabase) {
-    const bucket = guestRateLimits.get(guestKey);
-    if (!bucket || now >= bucket.windowStartedAt + guestWindowMs) {
-      guestRateLimits.set(guestKey, { windowStartedAt: now, requestCount: 1 });
-    } else {
-      bucket.requestCount += 1;
-      if (bucket.requestCount > guestMaxRequests) {
-        const retryAfter = Math.max(1, Math.ceil((bucket.windowStartedAt + guestWindowMs - now) / 1000));
-        return json({ error: "Guest rate limit reached. Sign in or create an account for a persistent BUSIQ workspace.", requestId }, 429, { "retry-after": String(retryAfter) });
-      }
-    }
+    return json({ error: authentication.error || "Guest session required.", requestId }, 401);
+  }
+
+  const { data: usageRows, error: usageError } = await authentication.supabase.rpc("consume_distributed_rate_limit", {
+    p_user_id: authentication.user.id,
+    p_window_seconds: Math.ceil(defaultUsagePolicy.windowMs / 1000),
+    p_max_requests: defaultUsagePolicy.maxRequests,
+  });
+  if (usageError) {
+    console.error(JSON.stringify({
+      event: "api.intelligence.rate_limit_failed",
+      requestId,
+      userId: authentication.user.id,
+      anonymous: authentication.isAnonymous,
+      error: usageError.message,
+    }));
+    return json({ error: "Rate limiting is temporarily unavailable.", requestId }, 503);
+  }
+  const usage = usageRows?.[0];
+  if (!usage?.allowed) {
+    console.warn(JSON.stringify({
+      event: "api.intelligence.rate_limited",
+      requestId,
+      userId: authentication.user.id,
+      anonymous: authentication.isAnonymous,
+    }));
+    return json(
+      { error: authentication.isAnonymous
+          ? "Guest rate limit reached. Sign in or create an account for the full BUSIQ workspace."
+          : "Rate limit exceeded", requestId },
+      429,
+      { "retry-after": String(usage?.retry_after_seconds ?? 1) },
+    );
   }
 
   try {
@@ -40,11 +55,16 @@ export default async function handler(request: Request): Promise<Response> {
       return json({ error: validation.error, requestId }, validation.status);
     }
 
-    if (!authentication.user || !authentication.supabase) {
+    if (authentication.isAnonymous) {
+      if (validation.businessId) {
+        return json({ error: "Sign in or create an account before accessing a business workspace.", requestId }, 403);
+      }
+
       const result = runIntelligencePipeline(validation.request, { context: validation.context });
       console.info(JSON.stringify({
         event: "api.intelligence.guest_completed",
         requestId,
+        userId: authentication.user.id,
         status: result.status,
         durationMs: Date.now() - startedAt,
       }));
@@ -170,14 +190,13 @@ export default async function handler(request: Request): Promise<Response> {
       event: "api.intelligence.failed",
       requestId,
       userId: authentication.user.id,
+      anonymous: authentication.isAnonymous,
       durationMs: Date.now() - startedAt,
       error: error instanceof Error ? error.message : "Unknown error",
     }));
     return json({ error: "Internal server error", requestId }, 500);
   }
 }
-
-const guestRateLimits = new Map<string, { windowStartedAt: number; requestCount: number }>();
 
 function json(body: unknown, status: number, extraHeaders: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
