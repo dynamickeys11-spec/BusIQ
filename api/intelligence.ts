@@ -71,7 +71,36 @@ export default async function handler(request: Request): Promise<Response> {
         }
       : undefined;
 
-    const result = runIntelligencePipeline(validation.request, { context });
+    let learningMemory: Array<{ id: string; exampleId: string; content: string; similarity: number }> = [];
+    try {
+      const { retrieveLearningMemory } = await import("../src/learning/runtime");
+      learningMemory = await retrieveLearningMemory(authentication.supabase, businessId, validation.request);
+    } catch (error) {
+      console.warn(JSON.stringify({
+        event: "api.intelligence.learning_memory_unavailable",
+        requestId,
+        businessId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      }));
+    }
+
+    const learningEntries = learningMemory.map((item) => ({
+      id: "learning-" + item.id,
+      kind: "knowledge" as const,
+      key: "learned-memory-" + item.exampleId,
+      value: item.content,
+      source: "BUSIQ learned memory; reference only",
+      createdAt: new Date().toISOString(),
+      businessId,
+    }));
+
+    const enrichedContext = context
+      ? { ...context, knowledge: [...context.knowledge, ...learningEntries] }
+      : learningEntries.length
+        ? { business: [], user: [], conversation: [], work: [], decisions: [], knowledge: learningEntries, provenance: [] }
+        : undefined;
+
+    const result = runIntelligencePipeline(validation.request, { context: enrichedContext });
 
     const { error: historyError } = await authentication.supabase.from("intelligence_runs").insert({
       business_id: businessId,
@@ -84,6 +113,32 @@ export default async function handler(request: Request): Promise<Response> {
     if (historyError) {
       console.error(JSON.stringify({ event: "api.intelligence.history_failed", requestId, userId: authentication.user.id, businessId, error: historyError.message }));
       return json({ error: "BUSIQ could not persist this intelligence run.", requestId }, 500);
+    }
+
+    try {
+      const { getConfiguredModelProvider, evaluateAndStoreLearning } = await import("../src/learning/runtime");
+      await evaluateAndStoreLearning(
+        authentication.supabase,
+        getConfiguredModelProvider(),
+        businessId,
+        validation.request,
+        JSON.stringify(result.answer),
+        result.evidence.map((item) => ({
+          id: item.id,
+          detail: item.detail,
+          source: item.source,
+          verification: item.verification,
+          kind: item.kind,
+        })),
+        learningMemory,
+      );
+    } catch (error) {
+      console.warn(JSON.stringify({
+        event: "api.intelligence.learning_evaluation_unavailable",
+        requestId,
+        businessId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      }));
     }
 
     console.info(JSON.stringify({
