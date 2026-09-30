@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const supabasePublishableKey = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const supabaseUrl = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.SUPABASE_URL || (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.VITE_SUPABASE_URL;
+const supabasePublishableKey = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.SUPABASE_PUBLISHABLE_KEY || (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export async function getAuthenticatedUser(request: Request) {
   const authorization = request.headers.get("authorization");
