@@ -9,6 +9,7 @@ const supabasePublishableKey = runtimeProcess?.SUPABASE_PUBLISHABLE_KEY || runti
 export type AuthenticatedSupabase = {
   user: User;
   supabase: ServerSupabase;
+  isAnonymous: boolean;
 };
 
 export async function getAuthenticatedUser(
@@ -18,7 +19,7 @@ export async function getAuthenticatedUser(
   const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
 
   if (!token || !supabaseUrl || !supabasePublishableKey) {
-    return { user: null, supabase: null, error: "Authentication is required." };
+    return { user: null, supabase: null, isAnonymous: false, error: "Authentication is required." };
   }
 
   const supabase = createClient(supabaseUrl, supabasePublishableKey, {
@@ -28,10 +29,13 @@ export async function getAuthenticatedUser(
 
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data.user) {
-    return { user: null, supabase: null, error: "Authentication is invalid or expired." };
+    return { user: null, supabase: null, isAnonymous: false, error: "Authentication is invalid or expired." };
   }
 
-  return { user: data.user, supabase, error: null };
+  const isAnonymous = data.user.is_anonymous === true
+    || data.user.app_metadata?.provider === "anonymous";
+
+  return { user: data.user, supabase, isAnonymous, error: null };
 }
 
 export async function getAuthorizedBusinessIds(
