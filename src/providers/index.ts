@@ -20,3 +20,5 @@ export {
   OpenAICompatibleModelProvider,
   createOllamaModelProvider,
 } from "./openai-compatible";
+
+export { FreeWebResearchProvider, createFreeWebResearchProvider } from "./free-research";
