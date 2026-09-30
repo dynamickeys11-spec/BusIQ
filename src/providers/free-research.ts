@@ -5,7 +5,7 @@ type SearchHit = { title: string; url: string; snippet: string };
 function decodeHtml(value: string): string {
   return value
     .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#(\\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
@@ -14,7 +14,7 @@ function decodeHtml(value: string): string {
 }
 
 function stripTags(value: string): string {
-  return decodeHtml(value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+  return decodeHtml(value.replace(/<[^>]+>/g, " ").replace(/\\s+/g, " ").trim());
 }
 
 function unwrap(url: string): string {
@@ -30,7 +30,10 @@ function unwrap(url: string): string {
 function parseResults(html: string, maxResults: number): SearchHit[] {
   const hits: SearchHit[] = [];
   const seen = new Set<string>();
-  const regex = /<div[^>]*class="[^"]*result[^"]*"[^>]*>[\s\S]*?<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
+  const regex = new RegExp(
+    '<div[^>]*class="[^"]*result[^"]*"[^>]*>[\\s\\S]*?<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\\s\\S]*?)</a>[\\s\\S]*?<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\\s\\S]*?)</a>',
+    "gi",
+  );
 
   for (const match of html.matchAll(regex)) {
     const url = unwrap(decodeHtml(match[1] ?? ""));
@@ -61,8 +64,9 @@ async function extractPage(url: string): Promise<{ ok: boolean; text: string; pu
   }
 
   const html = (await response.text()).slice(0, 500_000);
-  const title = stripTags(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "");
-  const paragraphs = [...html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
+  const title = stripTags(new RegExp("<title[^>]*>([\\s\\S]*?)</title>", "i").exec(html)?.[1] ?? "");
+  const paragraphRegex = new RegExp("<p[^>]*>([\\s\\S]*?)</p>", "gi");
+  const paragraphs = [...html.matchAll(paragraphRegex)]
     .map((match) => stripTags(match[1] ?? ""))
     .filter((text) => text.length > 40)
     .slice(0, 12);
@@ -99,7 +103,7 @@ export class FreeWebResearchProvider implements ResearchProvider {
           title: hit.title,
           url: hit.url,
           retrievedAt: new Date().toISOString(),
-          authority: /\.(gov|gov\.[a-z]{2}|edu|int|who\.int)$/i.test(new URL(hit.url).hostname) ? "primary" : "secondary",
+          authority: /.(gov|gov\\.[a-z]{2}|edu|int|who\\.int)$/i.test(new URL(hit.url).hostname) ? "primary" : "secondary",
         });
         const statement = page.text || hit.snippet;
         if (statement) claims.push({ statement: statement.slice(0, 1800), sourceIds: [id] });
