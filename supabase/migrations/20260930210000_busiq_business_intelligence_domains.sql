@@ -280,8 +280,7 @@ begin
   foreach table_name in array array[
     'business_customers','business_products','business_sales','business_money',
     'business_inventory','business_suppliers','business_operations','business_projects',
-    'business_marketing','business_people','business_decisions','business_decision_options',
-    'business_decision_scenarios','action_events','business_outcomes','busiq_jobs',
+    'business_marketing','business_people','business_decisions','action_events','business_outcomes','busiq_jobs',
     'knowledge_documents','knowledge_chunks'
   ] loop
     execute format('alter table public.%I enable row level security', table_name);
