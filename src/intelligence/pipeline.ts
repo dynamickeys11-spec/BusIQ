@@ -33,13 +33,13 @@ export type IntelligencePipelineOptions = {
   semanticInterpretation?: ModelSemanticInterpretation;
 };
 
-function finalizeResult(result: IntelligencePipelineResult, businessRecords: import("../business-data/types.js").NormalizedRecord[] = []): IntelligencePipelineResult {
+function finalizeResult(result: IntelligencePipelineResult, businessRecords: import("../business-data/types.js").NormalizedRecord[] = [], semanticInterpretation?: ModelSemanticInterpretation): IntelligencePipelineResult {
   const evidenceAssessment = assessEvidence(result.evidence);
   const worldModel = buildBusinessWorldModel(businessRecords, result.evidence, result.contextUsed ?? []);
   const semanticContext = (result.contextUsed ?? []).filter(entry => entry.kind === "conversation");
   const priorRequest = semanticContext.find(entry => entry.key === "last-request")?.value;
-  const semanticUnderstanding = result.semanticInterpretation
-    ? semanticInterpretationToUnderstanding(result.request, result.semanticInterpretation)
+  const semanticUnderstanding = semanticInterpretation
+    ? semanticInterpretationToUnderstanding(result.request, semanticInterpretation)
     : understandRequest(result.request, result.intent, priorRequest, semanticContext.map(entry => ({ key: entry.key, value: entry.value })));
   const priorPossibilities = (result.contextUsed ?? [])
     .filter(entry => entry.kind === "conversation" && entry.key.startsWith("possibility:"))
@@ -122,7 +122,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const base = {
     request: normalized, intent, ambiguity, capabilities, researchPlan, routing, contextUsed,
   };
-  const finish = (result: IntelligencePipelineResult) => finalizeResult(result, businessRecords);
+  const finish = (result: IntelligencePipelineResult) => finalizeResult(result, businessRecords, options.semanticInterpretation);
 
   if (ambiguity.length) {
     return finish({
