@@ -33,6 +33,21 @@ export type ToolExecutionResult =
 
 const tools: ToolDescriptor[] = [
   {
+    id: "explanation-tool",
+    label: "Evidence-bounded explanation",
+    purpose: "Prepare a clear explanation request without requiring business records.",
+    accepts: ["explanation request", "user-provided context"],
+    doesNotAccept: ["unsupported current business facts"],
+    requiredInputs: ["request"],
+    outputType: "explanation-request",
+    evidenceBehavior: "no-evidence",
+    sourceClass: "local-context",
+    availability: "available",
+    sideEffect: "none",
+    authorizationRequired: false,
+    freshness: "static",
+  },
+  {
     id: "local-context",
     label: "Local context",
     purpose: "Use information already present in the request and local BUSIQ context.",
