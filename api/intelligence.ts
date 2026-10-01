@@ -77,7 +77,7 @@ export async function POST(request: ServerRequest): Promise<Response> {
       const configuredProvider = getConfiguredModelProvider();
       const provider = configuredProvider ?? new SupabaseEdgeModelProvider(authentication.supabase);
       semanticInterpretationAttempted = true;
-      const interpretation = await interpretRequest(provider, validation.request, resolvedIntent);
+      const interpretation = await interpretRequest(provider, validation.request, resolvedIntent, validation.context?.conversation ?? []);
       resolvedIntent = mergeSemanticInterpretation(resolvedIntent, interpretation);
       semanticInterpretationSucceeded = true;
     } catch (error) {
