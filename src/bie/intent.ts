@@ -48,6 +48,6 @@ export function resolveIntent(input:string):ResolvedIntent{
   const explicitMultiIntent=/\b(and then|then|after that|and)\b/i.test(request) && ranked.length>1;
   const secondaryIntents=explicitMultiIntent ? ranked.slice(1,3).map(c=>c.kind as IntentKind) : [];
 
-  if(!matched)return{kind:"unknown",label:"Understand the request before choosing a capability",normalizedRequest:request,requiredCapabilities:["intent-resolution",...domainCapabilities],needsBusinessData,needsExternalResearch,ambiguity:"none",candidates:ranked,context,secondaryIntents:[]};
-  return{kind:matched.kind,label:matched.label,normalizedRequest:request,requiredCapabilities:[...new Set([...matched.capabilities,...domainCapabilities])],needsBusinessData,needsExternalResearch,ambiguity:secondaryIntents.length?"material":"none",candidates:ranked,context,secondaryIntents};
+  if(!matched)return{kind:"unknown",label:"Understand the request before choosing a capability",normalizedRequest:request,requiredCapabilities:[...new Set(["intent-resolution",...domainCapabilities,...(needsBusinessData?["business-data-retrieval"]:[]),...(needsExternalResearch?["external-research"]:[])])],needsBusinessData,needsExternalResearch,ambiguity:"none",candidates:ranked,context,secondaryIntents:[]};
+  return{kind:matched.kind,label:matched.label,normalizedRequest:request,requiredCapabilities:[...new Set([...matched.capabilities,...domainCapabilities,...(needsBusinessData?["business-data-retrieval"]:[]),...(needsExternalResearch?["external-research"]:[])])],needsBusinessData,needsExternalResearch,ambiguity:secondaryIntents.length?"material":"none",candidates:ranked,context,secondaryIntents};
 }
