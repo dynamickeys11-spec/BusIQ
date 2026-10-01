@@ -70,11 +70,15 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
     : [];
   const initialResearchAssessment = intent.needsExternalResearch ? assessResearchEvidence(initialEvidence) : undefined;
   const initialResearchStopping = initialResearchAssessment ? decideResearchStopping(initialResearchAssessment, 0) : undefined;
+  const businessCapabilityIds = new Set([
+    "business-data-retrieval","business-analysis","evidence-review",
+    "sales","customers","money","expenses","products","inventory",
+    "suppliers","people","operations","marketing","projects",
+  ]);
   const unavailable = capabilities.filter(
     item => item.status === "unavailable" &&
       !(item.id === "external-research" && options.externalEvidence?.length) &&
-      !(item.id === "business-data-retrieval" && options.businessEvidence?.length) &&
-      !(["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(item.id) && options.businessEvidence?.length),
+      !(businessCapabilityIds.has(item.id) && options.businessEvidence?.length),
   );
   const actionBlocked = actionDecision?.state === "blocked" && actionDecision.action.availability === "unavailable";
   const externalEvidence = options.externalEvidence ?? [];
@@ -86,8 +90,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const blockedRouting = routing.filter(
     item => item.state === "blocked" &&
       !(item.capabilityId === "external-research" && options.externalEvidence?.length) &&
-      !(item.capabilityId === "business-data-retrieval" && options.businessEvidence?.length) &&
-      !(["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(item.capabilityId) && options.businessEvidence?.length),
+      !(businessCapabilityIds.has(item.capabilityId) && options.businessEvidence?.length),
   );
   const base = {
     request: normalized, intent, ambiguity, capabilities, researchPlan, routing, contextUsed,
