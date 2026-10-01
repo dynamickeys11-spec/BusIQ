@@ -37,11 +37,18 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const action = resolveActionRequest(normalized);
   const actionDefinition = action ? getActionForKind(action.kind) : undefined;
   const actionDecision = actionDefinition ? buildActionDecision(actionDefinition) : undefined;
-  const researchPlan = buildResearchPlan(intent).map((step) =>
-    step.id === "external-research" && options.externalEvidence?.length
-      ? { ...step, status: "available" as const }
-      : step,
-  );
+  const researchPlan = buildResearchPlan(intent).map((step) => {
+    if (step.id === "external-research" && options.externalEvidence?.length) {
+      return { ...step, status: "available" as const };
+    }
+    if (
+      options.businessEvidence?.length &&
+      (step.sourceClass === "business-data" || step.id === "business-data")
+    ) {
+      return { ...step, status: "available" as const };
+    }
+    return step;
+  });
   const initialEvidence = normalized
     ? [{ id: "request", kind: "user" as const, label: "User request", detail: normalized, source: "User input" }]
     : [];
