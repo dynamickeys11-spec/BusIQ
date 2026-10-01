@@ -73,7 +73,7 @@ export function understandRequest(text: string, intent: ResolvedIntent, priorReq
   const entities = intent.context?.entities ?? [];
   const quantities = normalizedText.match(quantityPattern) ?? [];
   const time = normalizedText.match(timePattern)?.[0];
-  const references = [...normalizedText.matchAll(/\b(?:that|this|it|they|them|the above|your last answer|the previous|second one|first one|third one|the other one)\b/gi)].map(m => m[0]);
+  const references = [...normalizedText.matchAll(/\b(?:that|this|it|they|them|the above|your last answer|the previous|second one|first one|third one|second option|first option|third option|the other one|the other option)\b/gi)].map(m => m[0]);
   const constraints = [...normalizedText.matchAll(/\b(?:under|below|above|within|without|before|after|using|with|without)\s+[^,.!?]+/gi)].map(m => m[0].trim());
   const stage = stageOf(normalizedText);
   const possibleInterpretations: string[] = [];
