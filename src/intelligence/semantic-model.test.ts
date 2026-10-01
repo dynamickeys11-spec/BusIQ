@@ -24,4 +24,14 @@ describe("semantic model", () => {
     expect(model.possibilities[0]?.status).toBe("unresolved");
     expect(model.actual.some(item => item.kind === "observed")).toBe(true);
   });
+  it("retains prior possibility memory without promoting it to actual evidence", () => {
+    const model = buildSemanticModel("What about the second one?", [
+      { id: "request", kind: "user", label: "User request", detail: "What about the second one?", source: "User input" },
+    ], "compare", [], [{
+      id: "p2", label: "Option 2", statement: "A second candidate business", type: "option", status: "candidate", ordinal: 2,
+      evidenceIds: [], assumptions: ["Demand is unverified"], unknowns: ["Willingness to pay"], source: "busiq",
+    }]);
+    expect(model.possibilityMemory.some(item => item.ordinal === 2 && item.id === "p2")).toBe(true);
+    expect(model.actual.some(item => item.statement.includes("A second candidate business"))).toBe(false);
+  });
 });
