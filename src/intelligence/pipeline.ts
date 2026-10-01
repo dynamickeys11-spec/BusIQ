@@ -11,6 +11,8 @@ import { assessResearchEvidence, decideResearchStopping } from "./research-asses
 import { validateAnswerQuality } from "./answer-quality.js";
 import { buildActionDecision, getActionForKind, resolveActionRequest } from "./actions.js";
 import { flattenContext, selectRelevantContext } from "./context.js";
+import { buildBusinessWorldModel } from "./world-model.js";
+import { buildInvestigationPlan } from "./investigation.js";
 import type { ContextState, ContextEntry } from "./context.js";
 import type { IntelligencePipelineResult } from "./types.js";
 
@@ -22,7 +24,13 @@ export type IntelligencePipelineOptions = {
 };
 
 function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelineResult {
-  return { ...result, answerQuality: validateAnswerQuality(result) };
+  const worldModel = buildBusinessWorldModel([], result.evidence, result.contextUsed ?? []);
+  return {
+    ...result,
+    worldModel,
+    investigation: buildInvestigationPlan(result.request, worldModel, result.evidence),
+    answerQuality: validateAnswerQuality(result),
+  };
 }
 
 export function runIntelligencePipeline(request: string, options: IntelligencePipelineOptions = {}): IntelligencePipelineResult {
