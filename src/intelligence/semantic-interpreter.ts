@@ -1,4 +1,5 @@
 import type { ModelProvider } from "../providers/types.js";
+import type { ContextEntry } from "./context.js";
 import type { ResolvedIntent, IntentKind } from "../bie/intent.js";
 
 const intentKinds: IntentKind[] = ["investigate","compare","plan","create","retrieve","explain","monitor","unknown"];
@@ -47,6 +48,7 @@ export async function interpretRequest(
   provider: ModelProvider,
   request: string,
   baseline: ResolvedIntent,
+  context: ContextEntry[] = [],
 ): Promise<ModelSemanticInterpretation> {
   const response = await provider.generate({
     system: [
@@ -62,6 +64,7 @@ export async function interpretRequest(
     prompt: JSON.stringify({
       request,
       deterministicBaseline: baseline,
+      relevantConversationContext: context.filter(entry => entry.kind === "conversation").slice(-12),
       task: "Return a structured semantic interpretation of the request.",
       outputShape: {
         kind: "intent kind",
