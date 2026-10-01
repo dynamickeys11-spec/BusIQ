@@ -4,7 +4,7 @@ import { createFreeWebResearchProvider, SupabaseEdgeModelProvider } from "../src
 import type { BusinessDomain } from "../src/business-data/index.js";
 import { validateRequestBody } from "../src/intelligence/api-validation.js";
 import { getAuthenticatedUser, getAuthorizedBusinessIds } from "./auth.js";
-import { interpretRequest, mergeSemanticInterpretation } from "../src/intelligence/semantic-interpreter.js";
+import { interpretRequest, semanticInterpretationToIntent } from "../src/intelligence/semantic-interpreter.js";
 
 type ServerRequest = {
   method?: string;
@@ -72,14 +72,16 @@ export async function POST(request: ServerRequest): Promise<Response> {
     let resolvedIntent = resolveIntent(validation.request);
     let semanticInterpretationAttempted = false;
     let semanticInterpretationSucceeded = false;
+    let semanticUnderstandingMode: "model-primary" | "deterministic-fallback" = "deterministic-fallback";
     try {
       const { getConfiguredModelProvider } = await import("../src/learning/runtime.js");
       const configuredProvider = getConfiguredModelProvider();
       const provider = configuredProvider ?? new SupabaseEdgeModelProvider(authentication.supabase);
       semanticInterpretationAttempted = true;
-      const interpretation = await interpretRequest(provider, validation.request, resolvedIntent, validation.context?.conversation ?? []);
-      resolvedIntent = mergeSemanticInterpretation(resolvedIntent, interpretation);
+      const interpretation = await interpretRequest(provider, validation.request, validation.context?.conversation ?? []);
+      resolvedIntent = semanticInterpretationToIntent(validation.request, interpretation);
       semanticInterpretationSucceeded = true;
+      semanticUnderstandingMode = "model-primary";
     } catch (error) {
       console.warn(JSON.stringify({
         event: "api.intelligence.semantic_interpretation_unavailable",
@@ -98,6 +100,7 @@ export async function POST(request: ServerRequest): Promise<Response> {
       requiredCapabilities: resolvedIntent.requiredCapabilities,
       semanticInterpretationAttempted,
       semanticInterpretationSucceeded,
+      semanticUnderstandingMode,
     }));
 
     if (resolvedIntent.needsExternalResearch) {
