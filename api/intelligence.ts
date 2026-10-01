@@ -69,7 +69,7 @@ export async function POST(request: ServerRequest): Promise<Response> {
     }
 
     let externalEvidence: import("../src/intelligence/types.js").EvidenceItem[] = [];
-    let resolvedIntent = resolveIntent(validation.request);
+    let resolvedIntent: ReturnType<typeof resolveIntent>;
     let semanticInterpretationAttempted = false;
     let semanticInterpretationSucceeded = false;
     let semanticInterpretation: import("../src/intelligence/semantic-interpreter.js").ModelSemanticInterpretation | undefined;
@@ -85,6 +85,7 @@ export async function POST(request: ServerRequest): Promise<Response> {
       semanticInterpretationSucceeded = true;
       semanticUnderstandingMode = "model-primary";
     } catch (error) {
+      resolvedIntent = resolveIntent(validation.request);
       console.warn(JSON.stringify({
         event: "api.intelligence.semantic_interpretation_unavailable",
         requestId,
