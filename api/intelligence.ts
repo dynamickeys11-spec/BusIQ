@@ -12,7 +12,7 @@ type ServerRequest = {
   body?: unknown;
 };
 
-export default async function handler(request: ServerRequest): Promise<Response> {
+export async function POST(request: ServerRequest): Promise<Response> {
   const requestId = crypto.randomUUID();
   const startedAt = Date.now();
 
