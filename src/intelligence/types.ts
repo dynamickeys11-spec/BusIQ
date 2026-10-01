@@ -32,6 +32,6 @@ export type IntelligencePipelineResult = {
   routing: RoutingDecision[]; researchAssessment?: import("./research-assessment").ResearchAssessment;
   researchStopping?: import("./research-assessment").ResearchStoppingDecision;
   execution: ExecutionRecord[]; evidence: EvidenceItem[];
-  verification: { state: "not-run" | "passed" | "blocked"; checks: string[]; missingEvidence: string[]; diagnostics?: EvidenceDiagnostic[]; sufficiency?: EvidenceSufficiency; };
+  verification: { state: "not-run" | "passed" | "blocked"; checks: string[]; missingEvidence: string[]; diagnostics?: EvidenceDiagnostic[]; sufficiency?: EvidenceSufficiency; completeness?: number; contradictions?: Array<{ leftId: string; rightId: string; reason: string }>; };
   reasoning: ReasoningResult; answer: AnswerPresentation; answerQuality?: import("./answer-quality").AnswerQuality; trace: string[];
 };
