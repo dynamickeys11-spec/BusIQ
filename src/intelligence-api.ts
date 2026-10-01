@@ -12,7 +12,15 @@ export async function requestIntelligence(
   context: ContextState,
   businessId?: string,
 ): Promise<IntelligencePipelineResult> {
-  const { data } = await getSupabase().auth.getSession();
+  const supabase = getSupabase();
+  let { data } = await supabase.auth.getSession();
+  if (!data.session) {
+    const anonymous = await supabase.auth.signInAnonymously();
+    if (anonymous.error || !anonymous.data.session) {
+      throw new Error(anonymous.error?.message || "BUSIQ could not create a guest session.");
+    }
+    data = { session: anonymous.data.session, user: anonymous.data.user };
+  }
   const accessToken = data.session?.access_token;
 
   const response = await fetch("/api/intelligence", {
