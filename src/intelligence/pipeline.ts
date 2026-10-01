@@ -88,7 +88,9 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const executionGraph = options.semanticInterpretation
     ? buildCapabilityExecutionGraph(options.semanticInterpretation, semanticContextResolution ?? { entries: [], references: [], unresolvedReferences: [], summary: [] }, [...(options.businessEvidence ?? []), ...(options.externalEvidence ?? [])])
     : undefined;
-  const routing = options.semanticInterpretation ? routeCapabilities(options.intentOverride ?? intent) : routeCapabilities(intent);
+  const routing = options.semanticInterpretation && capabilityPlan
+    ? routeCapabilities(capabilityPlan.requiredCapabilities)
+    : routeCapabilities(intent);
   const action = resolveActionRequest(normalized);
   const actionDefinition = action ? getActionForKind(action.kind) : undefined;
   const actionDecision = actionDefinition ? buildActionDecision(actionDefinition) : undefined;
