@@ -61,6 +61,15 @@ export function executeTool(request: ToolExecutionRequest): ToolExecutionResult 
     };
   }
 
+  if (tool.id === "explanation-tool") {
+    return {
+      state: "success",
+      toolId: tool.id,
+      output: { subject: String(request.inputs.request), mode: "evidence-bounded" },
+      evidence: [],
+    };
+  }
+
   if (tool.id === "local-plan-builder") {
     const value = String(request.inputs.request);
     return {
