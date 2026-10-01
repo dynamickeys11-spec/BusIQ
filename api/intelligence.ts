@@ -311,6 +311,7 @@ export async function POST(request: ServerRequest): Promise<Response> {
       externalEvidence,
       businessEvidence,
       businessRecords,
+      intentOverride: resolvedIntent,
     });
 
     try {
