@@ -1,5 +1,5 @@
 import type { ModelSemanticInterpretation } from "./semantic-interpreter.js";
-import { getCapability, listCapabilities } from "./capabilities.js";
+import { listCapabilities } from "./capabilities.js";
 import type { ContextResolution } from "./context-resolver.js";
 
 export type ExecutionNodeStatus = "ready" | "blocked" | "satisfied";
@@ -53,14 +53,20 @@ export function applyExecutionNodeResults(graph: CapabilityExecutionGraph, resul
     if (result.state === "success") return { ...node, status: "satisfied" as const, blocker: undefined };
     return { ...node, status: "blocked" as const, blocker: result.reason ?? result.state };
   });
-  const blockedDependencies = new Set(nodes.filter(node => node.status === "blocked").map(node => node.id));
-  const propagated = nodes.map(node => {
-    if (node.status === "blocked") return node;
-    const dependency = node.dependencies.find(dep => blockedDependencies.has(dep));
-    return dependency
-      ? { ...node, status: "blocked" as const, blocker: `Dependency blocked: ${dependency}.` }
-      : node;
-  });
+  const propagated = nodes.map(node => ({ ...node }));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const node of propagated) {
+      if (node.status === "blocked") continue;
+      const dependency = node.dependencies.find(dep => propagated.find(item => item.id === dep)?.status === "blocked");
+      if (dependency) {
+        node.status = "blocked";
+        node.blocker = `Dependency blocked: ${dependency}.`;
+        changed = true;
+      }
+    }
+  }
   return {
     ...graph,
     nodes: propagated,
