@@ -4,20 +4,49 @@ import type { ModelProvider, ModelRequest, ModelResponse, ProviderHealth } from 
 import { interpretRequest, mergeSemanticInterpretation } from "./semantic-interpreter.js";
 
 class FakeProvider implements ModelProvider {
-  async generate(_request: ModelRequest): Promise<ModelResponse> {
+  async generate(request: ModelRequest): Promise<ModelResponse> {
+    const parsed = JSON.parse(request.prompt) as { request: string };
+    const systemQuestion = /how do you work|how does busiq work|what can you do|what do you need from me|best performance|best results/i.test(parsed.request);
     return {
       provider: "test",
       model: "fake",
-      text: JSON.stringify({
-        kind: "plan",
-        label: "Build a plan",
-        desiredOutcome: "create an actionable plan for starting a business",
+      text: JSON.stringify(systemQuestion ? {
+        kind: "explain",
+        label: "Explain BUSIQ",
+        meaning: "Understand how BUSIQ operates and how to get the best results from it.",
+        purpose: "use_busiq",
+        desiredOutcome: "Understand BUSIQ's operating model, capabilities, inputs, and limitations.",
+        businessRelevance: "indirect",
+        businessStage: "unknown",
+        answerMode: "system_explanation",
         needsBusinessData: false,
         needsExternalResearch: false,
+        requiresEvidence: false,
+        requiresUserInput: false,
+        requiredCapabilities: ["explanation"],
+        confidence: "high",
+        entities: ["BUSIQ"],
+        constraints: [],
+        quantities: [],
+        possibleInterpretations: [],
+      } : {
+        kind: "plan",
+        label: "Build a plan",
+        meaning: "Find a practical business starting path within the user's stated constraint.",
+        purpose: "plan",
+        desiredOutcome: "create an actionable plan for starting a business",
+        businessRelevance: "direct",
+        businessStage: "pre-business",
+        answerMode: "planning",
+        needsBusinessData: false,
+        needsExternalResearch: false,
+        requiresEvidence: false,
+        requiresUserInput: false,
         requiredCapabilities: ["planning"],
         confidence: "high",
         entities: [],
         constraints: ["with ₦100,000"],
+        quantities: ["₦100,000"],
         possibleInterpretations: [],
       }),
     };
@@ -29,15 +58,26 @@ class FakeProvider implements ModelProvider {
 
 describe("semantic interpreter", () => {
   it("parses and merges a model semantic interpretation", async () => {
-    const baseline = resolveIntent("I have no idea what business to start. I have ₦100,000.");
-const interpretation = await interpretRequest(new FakeProvider(), "I have no idea what business to start. I have ₦100,000.", baseline);
-if (interpretation.kind !== "plan") throw new Error("Model semantic interpretation did not parse.");
-if (!interpretation.constraints.includes("with ₦100,000")) throw new Error("Constraint was not preserved.");
-const merged = mergeSemanticInterpretation(baseline, interpretation);
-if (merged.kind !== "plan") throw new Error("Model intent was not merged.");
-if (!merged.requiredCapabilities.includes("planning")) throw new Error("Model capability was not merged.");
+    const request = "I have no idea what business to start. I have ₦100,000.";
+    const baseline = resolveIntent(request);
+    const interpretation = await interpretRequest(new FakeProvider(), request, baseline);
+    expect(interpretation.kind).toBe("plan");
+    expect(interpretation.constraints).toContain("with ₦100,000");
+    expect(interpretation.answerMode).toBe("planning");
+    const merged = mergeSemanticInterpretation(baseline, interpretation);
+    expect(merged.kind).toBe("plan");
+    expect(merged.requiredCapabilities).toContain("planning");
+    expect(merged.businessStage).toBe("pre-business");
+  });
 
-
-
+  it("supports BUSIQ/system questions without forcing business-data intent", async () => {
+    const request = "What can keep you at your best performance?";
+    const baseline = resolveIntent(request);
+    const interpretation = await interpretRequest(new FakeProvider(), request, baseline);
+    const merged = mergeSemanticInterpretation(baseline, interpretation);
+    expect(merged.answerMode).toBe("system_explanation");
+    expect(merged.purpose).toBe("use_busiq");
+    expect(merged.needsBusinessData).toBe(false);
+    expect(merged.kind).toBe("explain");
   });
 });
