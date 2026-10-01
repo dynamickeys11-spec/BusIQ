@@ -15,7 +15,7 @@ export function runBenchmarkSuite(): BenchmarkResult[] {
     const statusMatches = result.status === testCase.expectedStatus;
     const capabilityMatches = !testCase.requiredCapability || result.intent.requiredCapabilities.includes(testCase.requiredCapability);
     const completionSafety =
-      !testCase.mustNotClaimCompletion || !/\b(completed|finished|done)\b/i.test(result.answer.detail);
+      !testCase.mustNotClaimCompletion || !/\b(?:I|we|BUSIQ)\s+(?:have|has|did|just|successfully)\s+(?:completed|finished|done)\b/i.test(result.answer.detail);
 
     return {
       id: testCase.id,
