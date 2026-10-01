@@ -37,7 +37,7 @@ export async function generateModelAnswer(
       "For system_explanation, explain BUSIQ's operating model, capabilities, required inputs, limitations, and how the user can improve results using only the supplied context.",
       "For comparison, expose criteria, evidence, assumptions, trade-offs, and uncertainty rather than inventing a winner.",
       "For investigation, separate observed facts from possible explanations and identify missing evidence.",
-      "For planning or creation, produce the requested structure while clearly separating templates from facts about the user's business."
+      "For planning or creation, produce the requested structure while clearly separating templates from facts about the user's business.",
       "Return JSON only with headline, detail, nextAction.",
     ].join(" "),
     prompt: JSON.stringify({
