@@ -184,7 +184,8 @@ export async function POST(request: ServerRequest): Promise<Response> {
       return json({ error, requestId, code: scope.businessIds.length === 0 ? "BUSINESS_SETUP_REQUIRED" : "BUSINESS_SELECTION_REQUIRED" }, 409);
     }
 
-    let businessEvidence: import("../src/intelligence/types.js").EvidenceItem[] = [];\n    let businessRecords: import("../src/business-data/types.js").NormalizedRecord[] = [];
+    let businessEvidence: import("../src/intelligence/types.js").EvidenceItem[] = [];
+    let businessRecords: import("../src/business-data/types.js").NormalizedRecord[] = [];
     if (resolvedIntent.needsBusinessData) {
       const domains = resolvedIntent.requiredCapabilities.filter((capability): capability is BusinessDomain =>
         ["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(capability),
@@ -197,7 +198,8 @@ export async function POST(request: ServerRequest): Promise<Response> {
           const rows = await retrieveBusinessEvidence(authentication.supabase, businessId, domain);
           retrieved.push(...rows);
         }
-        businessRecords = retrieved.flatMap((item) => item.record ? [item.record] : []);\n        businessEvidence = retrieved.map((item) => ({
+        businessRecords = retrieved.flatMap((item) => item.record ? [item.record] : []);
+        businessEvidence = retrieved.map((item) => ({
           id: item.id,
           kind: "retrieved" as const,
           label: item.domain + " record",
