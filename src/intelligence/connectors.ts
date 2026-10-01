@@ -1,0 +1,2 @@
+import type {BusinessConnector,BusinessDomain} from "../business-data/types.js";
+export class ConnectorRegistry{private readonly connectors=new Map<string,BusinessConnector>();register(c:BusinessConnector){this.connectors.set(c.id,c)}list(d?:BusinessDomain){return[...this.connectors.values()].filter(c=>!d||c.domains.includes(d))}get(id:string){return this.connectors.get(id)}async health(){return Promise.all([...this.connectors.values()].map(async c=>({id:c.id,label:c.label,...await c.health()})))}}

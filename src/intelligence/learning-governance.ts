@@ -1,0 +1,2 @@
+export type LearningCandidate={id:string;pattern:string;evidenceIds:string[];benchmarkPassed:boolean;deterministicChecksPassed:boolean;promoted:boolean};
+export function canPromote(candidate:LearningCandidate){return candidate.benchmarkPassed&&candidate.deterministicChecksPassed&&candidate.evidenceIds.length>0;}
