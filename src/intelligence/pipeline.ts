@@ -11,7 +11,7 @@ import { validateToolResult } from "./result-validation.js";
 import { assessResearchEvidence, decideResearchStopping } from "./research-assessment.js";
 import { validateAnswerQuality } from "./answer-quality.js";
 import { buildActionDecision, getActionForKind, resolveActionRequest } from "./actions.js";
-import { flattenContext, selectRelevantContext } from "./context.js";
+import { flattenContext, selectRelevantContext, resolveSemanticContext } from "./context.js";
 import { buildBusinessWorldModel } from "./world-model.js";
 import { buildInvestigationPlan } from "./investigation.js";
 import { assessEvidence } from "./evidence-engine.js";
@@ -22,6 +22,8 @@ import type { ModelSemanticInterpretation } from "./semantic-interpreter.js";
 import { buildBusinessDigitalTwin } from "./digital-twin.js";
 import type { ContextState, ContextEntry } from "./context.js";
 import type { IntelligencePipelineResult } from "./types.js";
+import { planCapabilities } from "./capability-planner.js";
+import { applyExecutionNodeResults, buildCapabilityExecutionGraph } from "./execution-graph.js";
 
 export type IntelligencePipelineOptions = {
   context?: ContextState | ContextEntry[];
@@ -73,11 +75,22 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const normalized = request.trim().replace(/\s+/g, " ");
   const intent = options.intentOverride ?? resolveIntent(normalized);
   const contextEntries = Array.isArray(options.context) ? options.context : options.context ? flattenContext(options.context) : [];
-  const contextUsed = normalized ? selectRelevantContext(contextEntries, normalized, options.now) : [];
+  const semanticContextResolution = options.semanticInterpretation
+    ? resolveSemanticContext(options.semanticInterpretation.references, contextEntries, options.now)
+    : undefined;
+  const contextUsed = semanticContextResolution?.entries ?? (normalized ? selectRelevantContext(contextEntries, normalized, options.now) : []);
   const contextSummary = contextUsed.length ? ` ${contextUsed.length} usable persistent context item(s) informed planning; persistent context is not treated as verified evidence.` : "";
   const ambiguity = detectAmbiguity(normalized, intent);
   const capabilities = describeCapabilities(intent.requiredCapabilities, intent.needsBusinessData, intent.needsExternalResearch);
-  const routing = routeCapabilities(intent);
+  const capabilityPlan = options.semanticInterpretation
+    ? planCapabilities(options.semanticInterpretation, semanticContextResolution ?? { entries: [], references: [], unresolvedReferences: [], summary: [] }, [...(options.businessEvidence ?? []), ...(options.externalEvidence ?? [])])
+    : undefined;
+  const executionGraph = options.semanticInterpretation
+    ? buildCapabilityExecutionGraph(options.semanticInterpretation, semanticContextResolution ?? { entries: [], references: [], unresolvedReferences: [], summary: [] }, [...(options.businessEvidence ?? []), ...(options.externalEvidence ?? [])])
+    : undefined;
+  const routing = options.semanticInterpretation && capabilityPlan
+    ? routeCapabilities(capabilityPlan.requiredCapabilities)
+    : routeCapabilities(intent);
   const action = resolveActionRequest(normalized);
   const actionDefinition = action ? getActionForKind(action.kind) : undefined;
   const actionDecision = actionDefinition ? buildActionDecision(actionDefinition) : undefined;
@@ -121,7 +134,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
       !(businessCapabilityIds.has(item.capabilityId) && options.businessEvidence?.length),
   );
   const base = {
-    request: normalized, intent, ambiguity, capabilities, researchPlan, routing, contextUsed,
+    request: normalized, intent, ambiguity, capabilities, researchPlan, routing, contextUsed, contextResolution: semanticContextResolution, capabilityPlan, executionGraph,
   };
   const finish = (result: IntelligencePipelineResult) => finalizeResult(result, businessRecords, options.semanticInterpretation);
 
@@ -167,22 +180,61 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
       ].join(" ") + " BUSIQ will not invent the missing capability, connection, or action result." + contextSummary,
         nextAction: "Connect the required source or implement/connect the required execution capability.",
       },
-      trace: ["Normalize request", "Resolve required capabilities", "Route to suitable tools", "Plan research", "Verify available evidence", "Stop before unsupported execution"],
+      trace: ["Normalize request", "Resolve required capabilities", "Resolve context", "Build capability execution graph", "Inspect graph blockers", "Stop before unsupported execution"],
     });
   }
 
-  const execution = routing
-    .filter(route => route.state === "selected" && route.selectedToolId)
-    .filter(route => !(
-      (route.capabilityId === "business-data-retrieval" && businessEvidence.length) ||
-      (route.capabilityId === "external-research" && externalEvidence.length) ||
-      (["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(route.capabilityId) && businessEvidence.length)
-    ))
-    .map(route => executeTool({
+  let activeExecutionGraph = executionGraph;
+  const execution: Array<ReturnType<typeof executeTool>> = [];
+  const validatedExecution: Array<ReturnType<typeof validateToolResult>> = [];
+
+  const executeRoute = (route: (typeof routing)[number]) => {
+    const result = executeTool({
       toolId: route.selectedToolId as string,
       request: normalized,
       inputs: { request: normalized },
-    }));
+    });
+    execution.push(result);
+    const validated = validateToolResult(result);
+    validatedExecution.push(validated);
+    if (activeExecutionGraph) {
+      const nodeResult = {
+        nodeId: route.capabilityId,
+        state: validated.state === "success" ? "success" as const : "blocked" as const,
+        evidenceIds: validated.state === "success" ? validated.evidence.map(item => item.id) : [],
+        output: validated.state === "success" ? validated.output : undefined,
+        reason: validated.state === "success" ? undefined : validated.reason,
+      };
+      activeExecutionGraph = applyExecutionNodeResults(activeExecutionGraph, [nodeResult]);
+    }
+  };
+
+  if (activeExecutionGraph) {
+    for (const stage of activeExecutionGraph.stages) {
+      const stageNodes = stage
+        .map(capabilityId => activeExecutionGraph?.nodes.find(node => node.capabilityId === capabilityId))
+        .filter((node): node is NonNullable<typeof node> => Boolean(node));
+
+      for (const node of stageNodes) {
+        if (node.status !== "ready") continue;
+        const route = routing.find(item => item.capabilityId === node.capabilityId);
+        if (!route || route.state !== "selected" || !route.selectedToolId) continue;
+        if (
+          (route.capabilityId === "business-data-retrieval" && businessEvidence.length) ||
+          (route.capabilityId === "external-research" && externalEvidence.length) ||
+          (["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(route.capabilityId) && businessEvidence.length)
+        ) continue;
+        executeRoute(route);
+        if (activeExecutionGraph?.terminalState === "blocked") break;
+      }
+      if (activeExecutionGraph?.terminalState === "blocked") break;
+    }
+  } else {
+    for (const route of routing) {
+      if (route.state !== "selected" || !route.selectedToolId) continue;
+      executeRoute(route);
+    }
+  }
 
   const executionRecords = execution.map(result => {
     if (result.state === "success") {
@@ -190,7 +242,6 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
     }
     return { toolId: result.toolId, state: result.state, reason: result.reason };
   });
-  const validatedExecution = execution.map(validateToolResult);
   const executionEvidence = validatedExecution.flatMap(result => result.state === "success" ? result.evidence : []);
   const allEvidence = [...initialEvidence, ...externalEvidence, ...businessEvidence, ...executionEvidence];
 
@@ -232,7 +283,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
         detail: executionBlocked.map(item => item.reason).join(" ") + " BUSIQ will not claim work was completed when an executor is missing." + contextSummary,
         nextAction: "Implement or connect the missing executor before continuing.",
       },
-      trace: ["Normalize request", "Resolve intent", "Check material ambiguity", "Resolve capabilities", "Route to suitable tools", "Execute available tools", "Verify execution evidence", "Stop on missing executor"],
+      trace: ["Normalize request", "Resolve intent", "Check material ambiguity", "Resolve context", "Build capability execution graph", "Execute available graph nodes", "Verify execution evidence", "Stop on missing executor"],
     });
   }
 
@@ -240,6 +291,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const plan = planResult?.state === "success" ? planResult.output : undefined;
   return finish({
     ...base,
+    executionGraph: activeExecutionGraph,
     status: "ready",
     execution: [
       ...executionRecords,
@@ -263,6 +315,6 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
         : "BUSIQ completed the available local execution path without claiming unsupported facts.") + contextSummary,
       nextAction: plan ? "Review the plan structure, then connect business evidence when the next step requires real facts." : "Continue with the next available capability.",
     },
-    trace: ["Normalize request", "Resolve intent", "Load usable persistent context", "Check material ambiguity", "Resolve capabilities", "Route to suitable tools", "Plan research", "Execute available tools", "Verify execution evidence", "Return verified execution result"],
+    trace: ["Normalize request", "Resolve intent", "Load usable persistent context", "Check material ambiguity", "Resolve context", "Build capability execution graph", "Execute graph stages", "Verify execution evidence", "Return verified execution result"],
   });
 }

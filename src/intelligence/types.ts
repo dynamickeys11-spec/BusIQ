@@ -32,7 +32,10 @@ export type IntelligencePipelineResult = {
   request: string; status: PipelineStatus;
   intent: ReturnType<typeof import("../bie/intent").resolveIntent>;
   ambiguity: AmbiguityIssue[]; capabilities: CapabilityRequirement[]; researchPlan: ResearchStep[];
-  routing: RoutingDecision[]; researchAssessment?: import("./research-assessment").ResearchAssessment;
+  routing: RoutingDecision[];
+  contextResolution?: import("./context-resolver").ContextResolution;
+  capabilityPlan?: import("./capability-planner").CapabilityPlan;
+  executionGraph?: import("./execution-graph").CapabilityExecutionGraph; researchAssessment?: import("./research-assessment").ResearchAssessment;
   researchStopping?: import("./research-assessment").ResearchStoppingDecision;
   execution: ExecutionRecord[]; evidence: EvidenceItem[];
   verification: { state: "not-run" | "passed" | "blocked"; checks: string[]; missingEvidence: string[]; diagnostics?: EvidenceDiagnostic[]; sufficiency?: EvidenceSufficiency; completeness?: number; contradictions?: Array<{ leftId: string; rightId: string; reason: string }>; };
