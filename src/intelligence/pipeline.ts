@@ -23,7 +23,7 @@ import { buildBusinessDigitalTwin } from "./digital-twin.js";
 import type { ContextState, ContextEntry } from "./context.js";
 import type { IntelligencePipelineResult } from "./types.js";
 import { planCapabilities } from "./capability-planner.js";
-import { buildCapabilityExecutionGraph } from "./execution-graph.js";
+import { applyExecutionNodeResults, buildCapabilityExecutionGraph } from "./execution-graph.js";
 
 export type IntelligencePipelineOptions = {
   context?: ContextState | ContextEntry[];
@@ -182,25 +182,57 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
     });
   }
 
-  const executionRoutes = executionGraph
-    ? executionGraph.stages.flatMap(stage => stage)
-        .map(capabilityId => routing.find(route => route.capabilityId === capabilityId))
-        .filter((route): route is NonNullable<typeof route> => Boolean(route))
-    : routing;
+  let activeExecutionGraph = executionGraph;
+  const execution: Array<ReturnType<typeof executeTool>> = [];
+  const validatedExecution: Array<ReturnType<typeof validateToolResult>> = [];
 
-  const execution = executionRoutes
-    .filter(route => route.state === "selected" && route.selectedToolId)
-    .filter(route => !executionGraph || executionGraph.nodes.find(node => node.capabilityId === route.capabilityId)?.status === "ready")
-    .filter(route => !(
-      (route.capabilityId === "business-data-retrieval" && businessEvidence.length) ||
-      (route.capabilityId === "external-research" && externalEvidence.length) ||
-      (["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(route.capabilityId) && businessEvidence.length)
-    ))
-    .map(route => executeTool({
+  const executeRoute = (route: (typeof routing)[number]) => {
+    const result = executeTool({
       toolId: route.selectedToolId as string,
       request: normalized,
       inputs: { request: normalized },
-    }));
+    });
+    execution.push(result);
+    const validated = validateToolResult(result);
+    validatedExecution.push(validated);
+    if (activeExecutionGraph) {
+      const nodeResult = {
+        nodeId: route.capabilityId,
+        state: validated.state === "success" ? "success" as const : "blocked" as const,
+        evidenceIds: validated.state === "success" ? validated.evidence.map(item => item.id) : [],
+        output: validated.state === "success" ? validated.output : undefined,
+        reason: validated.state === "success" ? undefined : validated.reason,
+      };
+      activeExecutionGraph = applyExecutionNodeResults(activeExecutionGraph, [nodeResult]);
+    }
+  };
+
+  if (activeExecutionGraph) {
+    for (const stage of activeExecutionGraph.stages) {
+      const stageNodes = stage
+        .map(capabilityId => activeExecutionGraph?.nodes.find(node => node.capabilityId === capabilityId))
+        .filter((node): node is NonNullable<typeof node> => Boolean(node));
+
+      for (const node of stageNodes) {
+        if (node.status !== "ready") continue;
+        const route = routing.find(item => item.capabilityId === node.capabilityId);
+        if (!route || route.state !== "selected" || !route.selectedToolId) continue;
+        if (
+          (route.capabilityId === "business-data-retrieval" && businessEvidence.length) ||
+          (route.capabilityId === "external-research" && externalEvidence.length) ||
+          (["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(route.capabilityId) && businessEvidence.length)
+        ) continue;
+        executeRoute(route);
+        if (activeExecutionGraph?.terminalState === "blocked") break;
+      }
+      if (activeExecutionGraph?.terminalState === "blocked") break;
+    }
+  } else {
+    for (const route of routing) {
+      if (route.state !== "selected" || !route.selectedToolId) continue;
+      executeRoute(route);
+    }
+  }
 
   const executionRecords = execution.map(result => {
     if (result.state === "success") {
@@ -208,7 +240,6 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
     }
     return { toolId: result.toolId, state: result.state, reason: result.reason };
   });
-  const validatedExecution = execution.map(validateToolResult);
   const executionEvidence = validatedExecution.flatMap(result => result.state === "success" ? result.evidence : []);
   const allEvidence = [...initialEvidence, ...externalEvidence, ...businessEvidence, ...executionEvidence];
 
@@ -258,6 +289,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const plan = planResult?.state === "success" ? planResult.output : undefined;
   return finish({
     ...base,
+    executionGraph: activeExecutionGraph,
     status: "ready",
     execution: [
       ...executionRecords,
