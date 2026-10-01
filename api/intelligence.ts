@@ -139,6 +139,7 @@ export async function POST(request: ServerRequest): Promise<Response> {
       let result = runIntelligencePipeline(validation.request, {
         context: validation.context,
         externalEvidence,
+        intentOverride: resolvedIntent,
       });
       let modelAttempted = false;
       let modelSucceeded = false;
