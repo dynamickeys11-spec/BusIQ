@@ -2,7 +2,7 @@ import type { ModelSemanticInterpretation } from "./semantic-interpreter.js";
 import { listCapabilities } from "./capabilities.js";
 import type { ContextResolution } from "./context-resolver.js";
 
-export type ExecutionNodeStatus = "ready" | "blocked" | "satisfied";
+export type ExecutionNodeStatus = "ready" | "blocked" | "needs_context" | "satisfied";
 export type ExecutionTerminalState = "ready" | "needs_evidence" | "needs_context" | "blocked";
 
 export type CapabilityPlanNode = {
@@ -51,6 +51,7 @@ export function applyExecutionNodeResults(graph: CapabilityExecutionGraph, resul
     const result = resultByNode.get(node.id);
     if (!result) return node;
     if (result.state === "success") return { ...node, status: "satisfied" as const, blocker: undefined };
+    if (result.state === "needs_context") return { ...node, status: "needs_context" as const, blocker: result.reason ?? result.state };
     return { ...node, status: "blocked" as const, blocker: result.reason ?? result.state };
   });
   const propagated = nodes.map(node => ({ ...node }));
@@ -58,7 +59,7 @@ export function applyExecutionNodeResults(graph: CapabilityExecutionGraph, resul
   while (changed) {
     changed = false;
     for (const node of propagated) {
-      if (node.status === "blocked") continue;
+      if (node.status === "blocked" || node.status === "needs_context") continue;
       const dependency = node.dependencies.find(dep => propagated.find(item => item.id === dep)?.status === "blocked");
       if (dependency) {
         node.status = "blocked";
@@ -71,7 +72,13 @@ export function applyExecutionNodeResults(graph: CapabilityExecutionGraph, resul
     ...graph,
     nodes: propagated,
     results,
-    terminalState: propagated.some(n => n.status === "blocked") ? "blocked" : propagated.some(n => n.status === "ready" && n.evidencePolicy === "required") ? "needs_evidence" : "ready",
+    terminalState: propagated.some(n => n.status === "blocked")
+      ? "blocked"
+      : propagated.some(n => n.status === "needs_context")
+        ? "needs_context"
+        : propagated.some(n => n.status === "ready" && n.evidencePolicy === "required")
+          ? "needs_evidence"
+          : "ready",
   };
 }
 
@@ -133,6 +140,14 @@ export function buildCapabilityExecutionGraph(
   const hasBlocked = [...nodes.values()].some(n => n.status === "blocked");
   const needsEvidence = [...nodes.values()].some(n => n.status === "ready" && n.evidencePolicy === "required" && !availableEvidence.length);
   const needsContext = [...nodes.values()].some(n => n.status === "ready" && n.requiredInputs.includes("businessContext") && !context.entries.length);
+  if (needsContext) {
+    for (const node of nodes.values()) {
+      if (node.status === "ready" && node.requiredInputs.includes("businessContext")) {
+        node.status = "needs_context";
+        node.blocker = "Business context is required before this capability can execute.";
+      }
+    }
+  }
   return {
     nodes: [...nodes.values()],
     edges,
