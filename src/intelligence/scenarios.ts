@@ -1,0 +1,3 @@
+export type ScenarioInput={name:string;baseline:number;change:number;elasticity?:number;uncertainty?:number};
+export type ScenarioResult={name:string;projected:number;range:[number,number];assumptions:string[]};
+export function simulateScenario(input:ScenarioInput):ScenarioResult{const elasticity=input.elasticity??0;const projected=input.baseline*(1+input.change*elasticity);const uncertainty=Math.abs(projected)*(input.uncertainty??0.1);return{name:input.name,projected,range:[projected-uncertainty,projected+uncertainty],assumptions:["Elasticity is estimated rather than observed.","The scenario changes only the supplied variable."]};}

@@ -1,6 +1,6 @@
-import type { BusinessIntelligenceEngine, IntelligenceOutput, ResolvedBusinessContext } from "./contracts";
-import { resolveBusinessContext } from "./resolution";
-import { deterministicAnalyse } from "./providers/deterministic";
+import type { BusinessIntelligenceEngine, IntelligenceOutput, ResolvedBusinessContext } from "./contracts.js";
+import { resolveBusinessContext } from "./resolution.js";
+import { deterministicAnalyse } from "./providers/deterministic.js";
 
 const engine: BusinessIntelligenceEngine = {
   resolve: resolveBusinessContext,
@@ -22,4 +22,4 @@ export type {
   IntelligenceOutput,
   ProvenanceClass,
   ResolvedBusinessContext,
-} from "./contracts";
+} from "./contracts.js";
