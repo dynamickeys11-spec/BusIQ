@@ -7,7 +7,7 @@ const tableByDomain: Record<BusinessDomain, string> = {
   projects: "business_projects", marketing: "business_marketing", suppliers: "business_suppliers", people: "business_people",
 };
 const fieldsByDomain: Record<BusinessDomain, string> = {
-  customers: "id,name,email,phone,status,source,observed_at", sales: "id,occurred_at,amount,currency,quantity,status,source",
+  customers: "id,name,email,phone,status,source,observed_at", sales: "id,occurred_at,amount,currency,customer_id,product_id,quantity,status,source",
   money: "id,occurred_at,type,amount,currency,category,source", expenses: "id,occurred_at,type,amount,currency,category,source",
   products: "id,name,sku,category,price,currency,status,source", inventory: "id,product_id,location,quantity,occurred_at,source",
   operations: "id,operation_type,status,occurred_at,source", projects: "id,name,status,start_at,end_at,source",
@@ -23,7 +23,7 @@ function normalizeRecord(domain: BusinessDomain, row: Record<string, unknown>): 
   const source = asString(row.source) ?? "BUSIQ normalized business data";
   switch (domain) {
     case "customers": return { type:"customer", id, name:asString(row.name)??id, email:asString(row.email), phone:asString(row.phone), status:asString(row.status), source, observedAt:asString(row.observed_at)??new Date().toISOString() };
-    case "sales": return { type:"sale", id, occurredAt:asString(row.occurred_at)??new Date().toISOString(), amount:asNumber(row.amount)??0, currency:asString(row.currency)??"unknown", quantity:asNumber(row.quantity), status:asString(row.status), source };
+    case "sales": return { type:"sale", id, occurredAt:asString(row.occurred_at)??new Date().toISOString(), amount:asNumber(row.amount)??0, currency:asString(row.currency)??"unknown", customerId:asString(row.customer_id), productId:asString(row.product_id), quantity:asNumber(row.quantity), status:asString(row.status), source };
     case "money":
     case "expenses": { const t=asString(row.type); const typeName=t==="income"||t==="expense"||t==="transfer"||t==="refund"?t:"unknown"; return { type:"money", id, occurredAt:asString(row.occurred_at)??new Date().toISOString(), typeName, amount:asNumber(row.amount)??0, currency:asString(row.currency)??"unknown", category:asString(row.category), source }; }
     case "products": return { type:"product", id, name:asString(row.name)??id, sku:asString(row.sku), category:asString(row.category), price:asNumber(row.price), currency:asString(row.currency), status:asString(row.status), source };
