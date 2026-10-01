@@ -69,6 +69,16 @@ export async function POST(request: ServerRequest): Promise<Response> {
 
     let externalEvidence: import("../src/intelligence/types.js").EvidenceItem[] = [];
     const resolvedIntent = resolveIntent(validation.request);
+    console.info(JSON.stringify({
+      event: "api.intelligence.resolved",
+      requestId,
+      anonymous: authentication.isAnonymous,
+      requestLength: validation.request.length,
+      intent: resolvedIntent.kind,
+      needsBusinessData: resolvedIntent.needsBusinessData,
+      needsExternalResearch: resolvedIntent.needsExternalResearch,
+      requiredCapabilities: resolvedIntent.requiredCapabilities,
+    }));
 
     if (resolvedIntent.needsExternalResearch) {
       try {
@@ -110,12 +120,21 @@ export async function POST(request: ServerRequest): Promise<Response> {
         context: validation.context,
         externalEvidence,
       });
+      let modelAttempted = false;
+      let modelSucceeded = false;
+      let modelProvider: string | null = null;
+      let modelName: string | null = null;
 
       try {
         const { getConfiguredModelProvider } = await import("../src/learning/runtime.js");
+        const configuredProvider = getConfiguredModelProvider();
+        modelAttempted = result.status !== "needs_clarification";
+        modelProvider = configuredProvider ? "groq-or-compatible" : "supabase-edge-fallback";
+        modelName = configuredProvider ? (runtimeEnv("BUSIQ_MODEL_NAME") || "configured") : "supabase-edge";
         const { generateModelAnswer } = await import("../src/intelligence/model-answer.js");
-        const provider = getConfiguredModelProvider() ?? new SupabaseEdgeModelProvider(authentication.supabase);
+        const provider = configuredProvider ?? new SupabaseEdgeModelProvider(authentication.supabase);
         result = await generateModelAnswer(provider, result);
+        modelSucceeded = modelAttempted;
       } catch (error) {
         console.warn(JSON.stringify({
           event: "api.intelligence.guest_model_unavailable",
@@ -129,6 +148,11 @@ export async function POST(request: ServerRequest): Promise<Response> {
         requestId,
         userId: authentication.user.id,
         status: result.status,
+        intent: result.intent.kind,
+        modelAttempted,
+        modelSucceeded,
+        modelProvider,
+        model: modelName,
         durationMs: Date.now() - startedAt,
       }));
       return json({ requestId, result }, 200);
@@ -336,6 +360,10 @@ export async function POST(request: ServerRequest): Promise<Response> {
     }));
     return json({ error: "Internal server error", requestId }, 500);
   }
+}
+
+function runtimeEnv(name: string): string | undefined {
+  return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[name];
 }
 
 function json(body: unknown, status: number, extraHeaders: Record<string, string> = {}): Response {
