@@ -178,7 +178,13 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
     });
   }
 
-  const execution = routing
+  const executionRoutes = executionGraph
+    ? executionGraph.stages.flatMap(stage => stage)
+        .map(capabilityId => routing.find(route => route.capabilityId === capabilityId))
+        .filter((route): route is NonNullable<typeof route> => Boolean(route))
+    : routing;
+
+  const execution = executionRoutes
     .filter(route => route.state === "selected" && route.selectedToolId)
     .filter(route => !(
       (route.capabilityId === "business-data-retrieval" && businessEvidence.length) ||
