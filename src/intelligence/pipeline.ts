@@ -34,7 +34,9 @@ export type IntelligencePipelineOptions = {
 function finalizeResult(result: IntelligencePipelineResult, businessRecords: import("../business-data/types.js").NormalizedRecord[] = []): IntelligencePipelineResult {
   const evidenceAssessment = assessEvidence(result.evidence);
   const worldModel = buildBusinessWorldModel(businessRecords, result.evidence, result.contextUsed ?? []);
-  const semanticUnderstanding = understandRequest(result.request, result.intent);
+  const semanticContext = (result.contextUsed ?? []).filter(entry => entry.kind === "conversation");
+  const priorRequest = semanticContext.find(entry => entry.key === "last-request")?.value;
+  const semanticUnderstanding = understandRequest(result.request, result.intent, priorRequest, semanticContext.map(entry => ({ key: entry.key, value: entry.value })));
   const priorPossibilities = (result.contextUsed ?? [])
     .filter(entry => entry.kind === "conversation" && entry.key.startsWith("possibility:"))
     .map(entry => {
