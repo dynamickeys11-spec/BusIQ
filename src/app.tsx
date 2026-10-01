@@ -199,6 +199,16 @@ export default function App() {
       const result = await requestIntelligence(trimmed, context, businessId || undefined);
       setPipeline(result);
 
+      setContext((current) => ({
+        ...current,
+        conversation: mergeContext(current.conversation, [
+          createContextEntry("conversation", "last-request", result.request, { source: "BUSIQ conversation" }),
+          createContextEntry("conversation", "last-intent", result.intent.kind, { source: "BUSIQ semantic interpretation" }),
+          createContextEntry("conversation", "last-outcome", result.semanticUnderstanding?.desiredOutcome ?? result.answer.headline, { source: "BUSIQ semantic interpretation" }),
+          ...(result.semanticUnderstanding?.domains ?? []).map((domain) => createContextEntry("conversation", "domain:" + domain, domain, { source: "BUSIQ semantic interpretation" })),
+        ]),
+      }));
+
       if (result.status !== "needs_clarification") {
         const workId = crypto.randomUUID();
         const workItem = {
