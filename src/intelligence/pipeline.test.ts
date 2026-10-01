@@ -374,6 +374,38 @@ describe("BUSIQ intelligence pipeline", () => {
     expect(result.status).toBe("needs_clarification");
     expect(result.intent.kind).toBe("unknown");
   });
+
+  it("diagnoses a sales decline from supplied normalized records", () => {
+    const records = [
+      { type: "sale", id: "s1", occurredAt: "2026-09-01", amount: 1000, currency: "NGN", source: "fixture", metadata: { evidenceId: "e1" } },
+      { type: "sale", id: "s2", occurredAt: "2026-09-02", amount: 1000, currency: "NGN", source: "fixture", metadata: { evidenceId: "e2" } },
+      { type: "sale", id: "s3", occurredAt: "2026-09-03", amount: 1000, currency: "NGN", source: "fixture", metadata: { evidenceId: "e3" } },
+      { type: "sale", id: "s4", occurredAt: "2026-09-04", amount: 700, currency: "NGN", source: "fixture", metadata: { evidenceId: "e4" } },
+      { type: "sale", id: "s5", occurredAt: "2026-09-05", amount: 700, currency: "NGN", source: "fixture", metadata: { evidenceId: "e5" } },
+      { type: "sale", id: "s6", occurredAt: "2026-09-06", amount: 700, currency: "NGN", source: "fixture", metadata: { evidenceId: "e6" } },
+    ] as const;
+    const businessEvidence = records.map((record, index) => ({
+      id: `e${index + 1}`,
+      kind: "retrieved" as const,
+      label: "sales record",
+      detail: JSON.stringify(record),
+      source: "fixture",
+      authority: "connected-source" as const,
+      freshness: "current" as const,
+      verification: "verified" as const,
+      relevance: "direct" as const,
+      quality: "strong" as const,
+    }));
+    const result = runIntelligencePipeline("Why are my sales down?", { businessEvidence, businessRecords: [...records] });
+    expect(result.status).toBe("ready");
+    expect(result.reasoning.state).toBe("ready");
+    const diagnosis = result.reasoning.conclusions.find((item) => item.statement.includes("revenue changed"));
+    expect(diagnosis?.type).toBe("FINDING");
+    expect(diagnosis?.support).toBe("supported");
+    expect(diagnosis?.evidenceIds).toEqual(["e1", "e2", "e3", "e4", "e5", "e6"]);
+    expect(diagnosis?.statement).toContain("-30%");
+    expect(diagnosis?.statement).toContain("lower average transaction value");
+  });
 });
 
 
