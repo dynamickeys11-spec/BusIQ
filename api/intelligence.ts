@@ -1,4 +1,4 @@
-import { defaultUsagePolicy, runIntelligencePipeline } from "../src/intelligence/index";
+import { defaultUsagePolicy, runIntelligencePipeline } from "../src/intelligence/index.js";
 import { resolveIntent } from "../src/bie/intent";
 import { createFreeWebResearchProvider, SupabaseEdgeModelProvider } from "../src/providers";
 import type { BusinessDomain } from "../src/business-data";
