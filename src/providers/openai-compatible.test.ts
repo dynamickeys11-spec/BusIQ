@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { OpenAICompatibleModelProvider, createOllamaModelProvider } from "./openai-compatible";
+import { OpenAICompatibleModelProvider, createGroqModelProvider, createOllamaModelProvider } from "./openai-compatible";
 
 describe("OpenAI-compatible model provider", () => {
   it("maps a successful chat completion into BUSIQ's model contract", async () => {
@@ -34,6 +34,20 @@ describe("OpenAI-compatible model provider", () => {
       }),
     );
     vi.unstubAllGlobals();
+  });
+
+  it("creates the Groq provider with the remote OpenAI-compatible endpoint", async () => {
+    const provider = createGroqModelProvider("openai/gpt-oss-120b", "test-groq-key");
+    const health = await provider.health();
+
+    expect(health.provider).toBe("groq");
+    expect(health.detail).toContain("openai/gpt-oss-120b");
+  });
+
+  it("rejects an empty Groq API key", () => {
+    expect(() => createGroqModelProvider("openai/gpt-oss-120b", "  ")).toThrow(
+      "Groq API key is required.",
+    );
   });
 
   it("provides an Ollama configuration without requiring an API key", async () => {
