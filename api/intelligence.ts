@@ -4,6 +4,7 @@ import { createFreeWebResearchProvider, SupabaseEdgeModelProvider } from "../src
 import type { BusinessDomain } from "../src/business-data/index.js";
 import { validateRequestBody } from "../src/intelligence/api-validation.js";
 import { getAuthenticatedUser, getAuthorizedBusinessIds } from "./auth.js";
+import { interpretRequest, mergeSemanticInterpretation } from "../src/intelligence/semantic-interpreter.js";
 
 type ServerRequest = {
   method?: string;
@@ -68,7 +69,24 @@ export async function POST(request: ServerRequest): Promise<Response> {
     }
 
     let externalEvidence: import("../src/intelligence/types.js").EvidenceItem[] = [];
-    const resolvedIntent = resolveIntent(validation.request);
+    let resolvedIntent = resolveIntent(validation.request);
+    let semanticInterpretationAttempted = false;
+    let semanticInterpretationSucceeded = false;
+    try {
+      const { getConfiguredModelProvider } = await import("../src/learning/runtime.js");
+      const configuredProvider = getConfiguredModelProvider();
+      const provider = configuredProvider ?? new SupabaseEdgeModelProvider(authentication.supabase);
+      semanticInterpretationAttempted = true;
+      const interpretation = await interpretRequest(provider, validation.request, resolvedIntent);
+      resolvedIntent = mergeSemanticInterpretation(resolvedIntent, interpretation);
+      semanticInterpretationSucceeded = true;
+    } catch (error) {
+      console.warn(JSON.stringify({
+        event: "api.intelligence.semantic_interpretation_unavailable",
+        requestId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      }));
+    }
     console.info(JSON.stringify({
       event: "api.intelligence.resolved",
       requestId,
@@ -78,6 +96,8 @@ export async function POST(request: ServerRequest): Promise<Response> {
       needsBusinessData: resolvedIntent.needsBusinessData,
       needsExternalResearch: resolvedIntent.needsExternalResearch,
       requiredCapabilities: resolvedIntent.requiredCapabilities,
+      semanticInterpretationAttempted,
+      semanticInterpretationSucceeded,
     }));
 
     if (resolvedIntent.needsExternalResearch) {
