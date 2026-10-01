@@ -75,6 +75,7 @@ export function buildInvestigationPlan(
   }));
 
   const availableLabels = evidence.map(item => item.label.toLowerCase());
+  const evidenceByHypothesis = hypotheses.map(h => evidence.filter(item => item.label.toLowerCase().split(/\s+/).some(token => h.statement.toLowerCase().includes(token))).map(item => item.id));
   const questions = hypotheses.map((hypothesis, index) => ({
     id: `investigation-question-${index + 1}`,
     question: `What evidence would distinguish whether: ${hypothesis.statement}`,
@@ -83,6 +84,11 @@ export function buildInvestigationPlan(
   }));
 
   const gaps: string[] = [];
+  hypotheses.forEach((hypothesis, index) => {
+    const related = evidenceByHypothesis[index] ?? [];
+    if (related.length) hypothesis.evidenceIds = related;
+    else hypothesis.missingEvidence = [`Evidence needed to test: ${hypothesis.statement}`];
+  });
   if (!evidence.length) gaps.push("Connected business evidence");
   if (!worldModel.entities.length) gaps.push("Business entities and records");
   if (!availableLabels.some(label => /sales|revenue|customer|profit|cost|inventory|product/i.test(label))) {
