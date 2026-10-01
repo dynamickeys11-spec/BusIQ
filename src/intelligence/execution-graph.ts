@@ -17,11 +17,20 @@ export type CapabilityPlanNode = {
   blocker?: string;
 };
 
+export type ExecutionNodeResult = {
+  nodeId: string;
+  state: "success" | "blocked" | "needs_evidence" | "needs_context";
+  evidenceIds: string[];
+  output?: unknown;
+  reason?: string;
+};
+
 export type CapabilityExecutionGraph = {
   nodes: CapabilityPlanNode[];
   edges: Array<{ from: string; to: string; kind: "dependency" }>;
   stages: string[][];
   terminalState: ExecutionTerminalState;
+  results: ExecutionNodeResult[];
 };
 
 function topo(nodes: Map<string, CapabilityPlanNode>): string[][] {
@@ -34,6 +43,30 @@ function topo(nodes: Map<string, CapabilityPlanNode>): string[][] {
     stage.forEach(id => remaining.delete(id));
   }
   return stages;
+}
+
+export function applyExecutionNodeResults(graph: CapabilityExecutionGraph, results: ExecutionNodeResult[]): CapabilityExecutionGraph {
+  const resultByNode = new Map(results.map(result => [result.nodeId, result]));
+  const nodes = graph.nodes.map(node => {
+    const result = resultByNode.get(node.id);
+    if (!result) return node;
+    if (result.state === "success") return { ...node, status: "satisfied" as const, blocker: undefined };
+    return { ...node, status: "blocked" as const, blocker: result.reason ?? result.state };
+  });
+  const blockedDependencies = new Set(nodes.filter(node => node.status === "blocked").map(node => node.id));
+  const propagated = nodes.map(node => {
+    if (node.status === "blocked") return node;
+    const dependency = node.dependencies.find(dep => blockedDependencies.has(dep));
+    return dependency
+      ? { ...node, status: "blocked" as const, blocker: `Dependency blocked: ${dependency}.` }
+      : node;
+  });
+  return {
+    ...graph,
+    nodes: propagated,
+    results,
+    terminalState: propagated.some(n => n.status === "blocked") ? "blocked" : propagated.some(n => n.status === "ready" && n.evidencePolicy === "required") ? "needs_evidence" : "ready",
+  };
 }
 
 export function buildCapabilityExecutionGraph(
@@ -99,5 +132,6 @@ export function buildCapabilityExecutionGraph(
     edges,
     stages,
     terminalState: hasBlocked ? "blocked" : needsContext ? "needs_context" : needsEvidence ? "needs_evidence" : "ready",
+    results: [],
   };
 }
