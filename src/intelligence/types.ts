@@ -25,6 +25,7 @@ export type IntelligencePipelineResult = {
   action?: import("./actions").ActionRequest;
   actionDecision?: import("./actions").ActionDecision;
   semanticModel?: import("./semantic-model").SemanticModel;
+  semanticUnderstanding?: import("./semantic-understanding").SemanticUnderstanding;
   worldModel?: import("./world-model").BusinessWorldModel;
   digitalTwin?: import("./digital-twin").BusinessDigitalTwin;
   investigation?: import("./investigation").InvestigationPlan;
