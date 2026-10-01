@@ -66,14 +66,14 @@ function desiredOutcome(text: string, intent: IntentKind): string | undefined {
   return undefined;
 }
 
-export function understandRequest(text: string, intent: ResolvedIntent, priorRequest?: string): SemanticUnderstanding {
+export function understandRequest(text: string, intent: ResolvedIntent, priorRequest?: string, priorContext: Array<{ key: string; value: string }> = []): SemanticUnderstanding {
   const normalizedText = text.trim().replace(/\s+/g, " ");
   const operation = operationOf(normalizedText);
   const domains = domainPatterns.filter(([, p]) => p.test(normalizedText)).map(([name]) => name);
   const entities = intent.context?.entities ?? [];
   const quantities = normalizedText.match(quantityPattern) ?? [];
   const time = normalizedText.match(timePattern)?.[0];
-  const references = [...normalizedText.matchAll(/\b(?:that|this|it|they|them|the above|your last answer|the previous)\b/gi)].map(m => m[0]);
+  const references = [...normalizedText.matchAll(/\b(?:that|this|it|they|them|the above|your last answer|the previous|second one|first one|third one|the other one)\b/gi)].map(m => m[0]);
   const constraints = [...normalizedText.matchAll(/\b(?:under|below|above|within|without|before|after|using|with|without)\s+[^,.!?]+/gi)].map(m => m[0].trim());
   const stage = stageOf(normalizedText);
   const possibleInterpretations: string[] = [];
@@ -85,11 +85,12 @@ export function understandRequest(text: string, intent: ResolvedIntent, priorReq
   if (quantities.length) signals.push("quantities");
   if (references.length) signals.push("conversation-reference");
   if (operation !== "NEW_INTENT") signals.push("conversation-operation");
-  if (priorRequest && references.length) possibleInterpretations.push("The request may refine or continue the previous request.");
+  if ((priorRequest || priorContext.length) && references.length) possibleInterpretations.push("The request may refine, continue, or reference the previous conversation.");
+  if (priorContext.length && references.length) signals.push("context-memory");
   if (intent.kind === "unknown") possibleInterpretations.push("The wording does not map cleanly to a known action; preserve the user's wording and avoid inventing intent.");
   if (!domains.length && stage === "general") possibleInterpretations.push("This may be a general informational request rather than a business-data request.");
 
-  const confidence = intent.kind === "unknown" ? "low" : operation !== "NEW_INTENT" && references.length && !priorRequest ? "medium" : "high";
+  const confidence = intent.kind === "unknown" ? "low" : operation !== "NEW_INTENT" && references.length && !priorRequest && !priorContext.length ? "medium" : "high";
   return {
     normalizedText,
     operation,
