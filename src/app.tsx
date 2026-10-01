@@ -207,6 +207,9 @@ export default function App() {
           createContextEntry("conversation", "last-outcome", result.semanticUnderstanding?.desiredOutcome ?? result.answer.headline, { source: "BUSIQ semantic interpretation" }),
           createContextEntry("conversation", "last-response", result.answer.detail, { source: "BUSIQ response memory" }),
           ...(result.semanticUnderstanding?.domains ?? []).map((domain) => createContextEntry("conversation", "domain:" + domain, domain, { source: "BUSIQ semantic interpretation" })),
+          ...(result.semanticModel?.possibilityMemory ?? []).map((possibility) =>
+            createContextEntry("conversation", "possibility:" + possibility.ordinal, JSON.stringify(possibility), { source: "BUSIQ possibility memory" })
+          ),
         ]),
       }));
 
