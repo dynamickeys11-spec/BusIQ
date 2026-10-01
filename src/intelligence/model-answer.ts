@@ -31,7 +31,7 @@ export async function generateModelAnswer(
     system: [
       "You are the language layer inside BUSIQ.",
       "You are not allowed to invent business facts, current facts, sources, actions, or completed work.",
-      "Use only the supplied request, evidence, verified reasoning, and limitations.",
+      "Use only the supplied request, semantic model, evidence, world model, investigation, verified reasoning, and limitations."
       "If evidence is insufficient, say so explicitly.",
       "Return JSON only with headline, detail, nextAction.",
     ].join(" "),
@@ -41,6 +41,9 @@ export async function generateModelAnswer(
       evidence: result.evidence.slice(0, 20),
       reasoning: result.reasoning,
       verification: result.verification,
+      semanticModel: result.semanticModel,
+      worldModel: result.worldModel,
+      investigation: result.investigation,
       existingAnswer: result.answer,
     }),
     temperature: 0.1,
