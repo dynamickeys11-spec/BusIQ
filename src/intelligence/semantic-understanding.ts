@@ -106,7 +106,7 @@ export function understandRequest(
   const references = [...normalizedText.matchAll(/\b(?:that|this|it|they|them|the above|your last answer|the previous|second one|first one|third one|second option|first option|third option|the other one|the other option)\b/gi)].map(m => m[0]);
   const constraints = [...normalizedText.matchAll(/\b(?:under|below|above|within|without|before|after|using|with|without)\s+[^,.!?]+/gi)].map(m => m[0].trim());
   const stage: BusinessStage = intent.businessStage ?? (/\b(?:my|our|current|existing)\b.*\b(?:business|company|sales|customers|inventory|profit|revenue)\b/i.test(normalizedText) ? "existing-business" : "general");
-  const possibleInterpretations = [...(intent.ambiguityDetails ?? []), ...intent.context?.entities?.filter(() => false) ?? []];
+  const possibleInterpretations = [...(intent.ambiguityDetails ?? [])];
   const signals: string[] = [];
 
   if (intent.kind !== "unknown") signals.push("intent-routing");
