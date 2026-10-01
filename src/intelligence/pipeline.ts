@@ -25,8 +25,9 @@ export type IntelligencePipelineOptions = {
   businessRecords?: import("../business-data/types.js").NormalizedRecord[];
 };
 
-function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelineResult {
-  const worldModel = buildBusinessWorldModel([], result.evidence, result.contextUsed ?? []);
+function finalizeResult(result: IntelligencePipelineResult, businessRecords: import("../business-data/types.js").NormalizedRecord[] = []): IntelligencePipelineResult {
+  const evidenceAssessment = assessEvidence(result.evidence);
+  const worldModel = buildBusinessWorldModel(businessRecords, result.evidence, result.contextUsed ?? []);
   return {
     ...result,
     worldModel,
@@ -71,7 +72,10 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
       !(item.id === "business-data-retrieval" && options.businessEvidence?.length) &&
       !(["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(item.id) && options.businessEvidence?.length),
   );
-  const actionBlocked = actionDecision?.state === "blocked" && actionDecision.action.availability === "unavailable";\n  const externalEvidence = options.externalEvidence ?? [];\n  const businessEvidence = options.businessEvidence ?? [];\n  const businessRecords = options.businessRecords ?? [];
+  const actionBlocked = actionDecision?.state === "blocked" && actionDecision.action.availability === "unavailable";
+  const externalEvidence = options.externalEvidence ?? [];
+  const businessEvidence = options.businessEvidence ?? [];
+  const businessRecords = options.businessRecords ?? [];
   const liveEvidenceMissing =
     (intent.needsExternalResearch && !(options.externalEvidence?.length)) ||
     (intent.needsBusinessData && !(options.businessEvidence?.length));
@@ -84,6 +88,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const base = {
     request: normalized, intent, ambiguity, capabilities, researchPlan, routing, contextUsed,
   };
+  const finish = (result: IntelligencePipelineResult) => finalizeResult(result, businessRecords);
 
   if (ambiguity.length) {
     return finish({
@@ -152,8 +157,6 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   });
   const validatedExecution = execution.map(validateToolResult);
   const executionEvidence = validatedExecution.flatMap(result => result.state === "success" ? result.evidence : []);
-  const externalEvidence = options.externalEvidence ?? [];
-  const businessEvidence = options.businessEvidence ?? [];
   const allEvidence = [...initialEvidence, ...externalEvidence, ...businessEvidence, ...executionEvidence];
 
   const executionBlocked = validatedExecution.filter(result => result.state === "blocked");
