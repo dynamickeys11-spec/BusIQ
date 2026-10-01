@@ -14,6 +14,7 @@ import { flattenContext, selectRelevantContext } from "./context.js";
 import { buildBusinessWorldModel } from "./world-model.js";
 import { buildInvestigationPlan } from "./investigation.js";
 import { assessEvidence } from "./evidence-engine.js";
+import { diagnoseSales } from "./business-diagnostics.js";
 import type { ContextState, ContextEntry } from "./context.js";
 import type { IntelligencePipelineResult } from "./types.js";
 
@@ -166,7 +167,12 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const verification = verifyEvidence(allEvidence, researchPlan, 0, executionSucceeded, normalized);
   const researchAssessment = intent.needsExternalResearch ? assessResearchEvidence(allEvidence) : undefined;
   const researchStopping = researchAssessment ? decideResearchStopping(researchAssessment, new Set(allEvidence.filter(item => item.kind === "retrieved" || item.kind === "verified").map(item => item.source)).size) : undefined;
-  const reasoning = reasonFromEvidence(allEvidence, verification.state, normalized);
+  const reasoning = reasonFromEvidence(allEvidence, verification.state, normalized, businessRecords);
+  const salesDiagnosis = verification.state === "passed" ? diagnoseSales(businessRecords, normalized) : undefined;
+  if (salesDiagnosis) {
+    reasoning.conclusions.push(salesDiagnosis.conclusion);
+    reasoning.limitations.push("Sales diagnosis uses only the supplied normalized sales records and does not establish external or causal explanations.");
+  }
 
   if (executionBlocked.length) {
     return finish({
