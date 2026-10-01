@@ -35,7 +35,7 @@ function finalizeResult(result: IntelligencePipelineResult, businessRecords: imp
     ...result,
     semanticModel,
     worldModel,
-    investigation: buildInvestigationPlan(result.request, worldModel, result.evidence),
+    investigation: buildInvestigationPlan(result.request, worldModel, result.evidence, semanticModel),
     verification: { ...result.verification, diagnostics: [...(result.verification.diagnostics ?? []), ...evidenceAssessment.diagnostics], sufficiency: evidenceAssessment.sufficiency, completeness: evidenceAssessment.completeness, contradictions: evidenceAssessment.contradictions },
     answerQuality: validateAnswerQuality(result),
   };
