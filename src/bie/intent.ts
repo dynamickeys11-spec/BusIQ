@@ -43,7 +43,7 @@ export function resolveIntent(input:string):ResolvedIntent{
   const matched=ranked[0] ? rules.find(r=>r.kind===ranked[0].kind) : undefined;
   const businessAction=/\b(show|find|list|analy[sz]|investigat|compare|monitor|track|why|how is|how are|check|review)\b/i.test(request);
   const needsBusinessData=currentBusiness.test(request)&&(businessObjects.test(request)||businessAction);
-  const domainCapabilities=needsBusinessData ? domainCapabilityPatterns.filter(([, pattern]) => pattern.test(request)).map(([id]) => id) : [];
+  const domainCapabilities=matched?.kind === "explain" ? [] : domainCapabilityPatterns.filter(([, pattern]) => pattern.test(request)).map(([id]) => id);
   const needsExternalResearch=externalObjects.test(request)&&(/\b(current|latest|research|find|compare|benchmark|market|competitor|industry|regulat|trend)\b/i.test(request));
   const explicitMultiIntent=/\b(and then|then|after that|and)\b/i.test(request) && ranked.length>1;
   const secondaryIntents=explicitMultiIntent ? ranked.slice(1,3).map(c=>c.kind as IntentKind) : [];
