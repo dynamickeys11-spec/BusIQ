@@ -32,7 +32,7 @@ function finalizeResult(result: IntelligencePipelineResult, businessRecords: imp
     ...result,
     worldModel,
     investigation: buildInvestigationPlan(result.request, worldModel, result.evidence),
-    verification: { ...result.verification, diagnostics: [...(result.verification.diagnostics ?? []), ...evidenceAssessment.diagnostics], sufficiency: evidenceAssessment.sufficiency },
+    verification: { ...result.verification, diagnostics: [...(result.verification.diagnostics ?? []), ...evidenceAssessment.diagnostics], sufficiency: evidenceAssessment.sufficiency, completeness: evidenceAssessment.completeness, contradictions: evidenceAssessment.contradictions },
     answerQuality: validateAnswerQuality(result),
   };
 }
