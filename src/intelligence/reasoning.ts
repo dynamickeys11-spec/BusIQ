@@ -110,6 +110,7 @@ export function reasonFromEvidence(
   evidence: EvidenceItem[],
   verificationState: "passed" | "blocked",
   request: string,
+  businessRecords: import("../business-data/types.js").NormalizedRecord[] = [],
 ): ReasoningResult {
   if (verificationState !== "passed") {
     const recommendation = requestsRecommendation(request) ? insufficientRecommendation(request) : undefined;
