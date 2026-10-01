@@ -59,10 +59,38 @@ function candidates(request:string) {
   }).filter(c=>c.score>0).sort((a,b)=>b.score-a.score);
 }
 
+function systemQuestionFallback(request:string): boolean {
+  return /\b(?:how|what|why|when|where|can|do)\b[^?.!]*\b(?:you|busiq)\b/i.test(request)
+    || /\b(?:you|busiq)\b[^?.!]*\b(?:work|do|need|require|perform|capabilit|help|use|best results|best performance)\b/i.test(request);
+}
+
 export function resolveIntent(input:string):ResolvedIntent{
   const request=input.trim().replace(/\s+/g," ");
   const context=contextOf(request);
   if(!request)return{kind:"unknown",label:"No request yet",normalizedRequest:"",requiredCapabilities:[],needsBusinessData:false,needsExternalResearch:false,ambiguity:"none",candidates:[],context,secondaryIntents:[]};
+
+  if (systemQuestionFallback(request)) {
+    return {
+      kind:"explain",
+      label:"Explain BUSIQ or its capabilities",
+      normalizedRequest:request,
+      requiredCapabilities:["intent-resolution","explanation"],
+      needsBusinessData:false,
+      needsExternalResearch:false,
+      ambiguity:"none",
+      candidates:[{kind:"explain",score:1,reasons:["Detected a question about BUSIQ or the assistant's operation/capabilities."]}],
+      context,
+      secondaryIntents:[],
+      meaning:"Understand how BUSIQ operates, what it can do, or what it needs to perform the requested task.",
+      purpose:"use_busiq",
+      desiredOutcome:"Explain BUSIQ's operation, capabilities, requirements, or limitations.",
+      businessRelevance:"indirect",
+      businessStage:"unknown",
+      answerMode:"system_explanation",
+      requiresEvidence:false,
+      requiresUserInput:false,
+    };
+  }
 
   const ranked=candidates(request);
   const matched=ranked[0] ? rules.find(r=>r.kind===ranked[0].kind) : undefined;
