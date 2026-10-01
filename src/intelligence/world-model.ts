@@ -69,6 +69,20 @@ export function buildBusinessWorldModel(
 
   for (const record of records) entities.set(`record:${record.id}`, recordEntity(record));
 
+  if (!records.length) {
+    for (const item of evidence) {
+      const label = item.label.toLowerCase();
+      const type: WorldModelEntityType = label.includes("sale") ? "sale" : label.includes("customer") ? "customer" : label.includes("product") ? "product" : label.includes("inventory") ? "inventory" : label.includes("money") || label.includes("expense") ? "money" : label.includes("marketing") ? "marketing" : "knowledge";
+      entities.set(`evidence:${item.id}`, {
+        id: `evidence:${item.id}`,
+        type,
+        label: item.label,
+        attributes: { detail: item.detail, source: item.source, freshness: item.freshness, verification: item.verification },
+        evidenceIds: [item.id],
+      });
+    }
+  }
+
   for (const record of records) {
     if (record.type === "sale" && record.customerId) {
       const from = `record:${record.id}`;
