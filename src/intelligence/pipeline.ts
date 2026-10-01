@@ -35,7 +35,19 @@ function finalizeResult(result: IntelligencePipelineResult, businessRecords: imp
   const evidenceAssessment = assessEvidence(result.evidence);
   const worldModel = buildBusinessWorldModel(businessRecords, result.evidence, result.contextUsed ?? []);
   const semanticUnderstanding = understandRequest(result.request, result.intent);
-  const semanticModel = buildSemanticModel(result.request, result.evidence, result.intent.kind, result.reasoning.conclusions.map(conclusion => conclusion.type));
+  const priorPossibilities = (result.contextUsed ?? [])
+    .filter(entry => entry.kind === "conversation" && entry.key.startsWith("possibility:"))
+    .map(entry => {
+      try { return JSON.parse(entry.value) as import("./semantic-model.js").PossibilityMemory; } catch { return undefined; }
+    })
+    .filter((item): item is import("./semantic-model.js").PossibilityMemory => Boolean(item));
+  const semanticModel = buildSemanticModel(
+    result.request,
+    result.evidence,
+    result.intent.kind,
+    result.reasoning.conclusions.map(conclusion => conclusion.type),
+    priorPossibilities,
+  );
   const investigation = buildInvestigationPlan(result.request, worldModel, result.evidence, semanticModel);
   const digitalTwin = buildBusinessDigitalTwin(businessRecords, result.evidence, worldModel);
   return {
