@@ -12,10 +12,16 @@ export type AuthenticatedSupabase = {
   isAnonymous: boolean;
 };
 
+type ServerRequest = {
+  headers?: { get?: (name: string) => string | null; authorization?: string };
+};
+
 export async function getAuthenticatedUser(
-  request: Request,
+  request: ServerRequest,
 ): Promise<{ user: User | null; supabase: ServerSupabase | null; isAnonymous: boolean; error: string | null }> {
-  const authorization = request.headers.get("authorization");
+  const authorization = typeof request.headers?.get === "function"
+    ? request.headers.get("authorization")
+    : request.headers?.authorization;
   const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
 
   if (!token || !supabaseUrl || !supabasePublishableKey) {

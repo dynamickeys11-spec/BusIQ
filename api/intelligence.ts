@@ -5,7 +5,14 @@ import type { BusinessDomain } from "../src/business-data/index.js";
 import { validateRequestBody } from "../src/intelligence/api-validation.js";
 import { getAuthenticatedUser, getAuthorizedBusinessIds } from "./auth.js";
 
-export default async function handler(request: Request): Promise<Response> {
+type ServerRequest = {
+  method?: string;
+  headers?: { get?: (name: string) => string | null; authorization?: string };
+  json?: () => Promise<unknown>;
+  body?: unknown;
+};
+
+export default async function handler(request: ServerRequest): Promise<Response> {
   const requestId = crypto.randomUUID();
   const startedAt = Date.now();
 
@@ -52,7 +59,9 @@ export default async function handler(request: Request): Promise<Response> {
   }
 
   try {
-    const body = await request.json();
+    const body = typeof request.json === "function"
+      ? await request.json()
+      : request.body ?? {};
     const validation = validateRequestBody(body, defaultUsagePolicy.maxRequestChars);
     if (!validation.ok) {
       return json({ error: validation.error, requestId }, validation.status);
