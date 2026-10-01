@@ -24,6 +24,7 @@ export type IntelligencePipelineResult = {
   contextUsed?: import("./context").ContextEntry[];
   action?: import("./actions").ActionRequest;
   actionDecision?: import("./actions").ActionDecision;
+  semanticModel?: import("./semantic-model").SemanticModel;
   worldModel?: import("./world-model").BusinessWorldModel;
   investigation?: import("./investigation").InvestigationPlan;
   request: string; status: PipelineStatus;
