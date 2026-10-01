@@ -11,7 +11,7 @@ import { validateToolResult } from "./result-validation.js";
 import { assessResearchEvidence, decideResearchStopping } from "./research-assessment.js";
 import { validateAnswerQuality } from "./answer-quality.js";
 import { buildActionDecision, getActionForKind, resolveActionRequest } from "./actions.js";
-import { flattenContext, selectRelevantContext } from "./context.js";
+import { flattenContext, selectRelevantContext, resolveSemanticContext } from "./context.js";
 import { buildBusinessWorldModel } from "./world-model.js";
 import { buildInvestigationPlan } from "./investigation.js";
 import { assessEvidence } from "./evidence-engine.js";
@@ -21,7 +21,7 @@ import { semanticInterpretationToUnderstanding, understandRequest } from "./sema
 import type { ModelSemanticInterpretation } from "./semantic-interpreter.js";
 import { buildBusinessDigitalTwin } from "./digital-twin.js";
 import type { ContextState, ContextEntry } from "./context.js";
-import type { IntelligencePipelineResult } from "./types.js";
+import type { IntelligencePipelineResult } from "./types.js";\nimport { planCapabilities } from "./capability-planner.js";
 
 export type IntelligencePipelineOptions = {
   context?: ContextState | ContextEntry[];
@@ -73,7 +73,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const normalized = request.trim().replace(/\s+/g, " ");
   const intent = options.intentOverride ?? resolveIntent(normalized);
   const contextEntries = Array.isArray(options.context) ? options.context : options.context ? flattenContext(options.context) : [];
-  const contextUsed = normalized ? selectRelevantContext(contextEntries, normalized, options.now) : [];
+  const semanticContextResolution = options.semanticInterpretation\n    ? resolveSemanticContext(options.semanticInterpretation.references, contextEntries, options.now)\n    : undefined;\n  const contextUsed = semanticContextResolution?.entries ?? (normalized ? selectRelevantContext(contextEntries, normalized, options.now) : []);
   const contextSummary = contextUsed.length ? ` ${contextUsed.length} usable persistent context item(s) informed planning; persistent context is not treated as verified evidence.` : "";
   const ambiguity = detectAmbiguity(normalized, intent);
   const capabilities = describeCapabilities(intent.requiredCapabilities, intent.needsBusinessData, intent.needsExternalResearch);
@@ -121,7 +121,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
       !(businessCapabilityIds.has(item.capabilityId) && options.businessEvidence?.length),
   );
   const base = {
-    request: normalized, intent, ambiguity, capabilities, researchPlan, routing, contextUsed,
+    request: normalized, intent, ambiguity, capabilities, researchPlan, routing, contextUsed, contextResolution: semanticContextResolution, capabilityPlan,
   };
   const finish = (result: IntelligencePipelineResult) => finalizeResult(result, businessRecords, options.semanticInterpretation);
 
