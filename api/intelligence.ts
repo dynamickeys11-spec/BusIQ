@@ -318,6 +318,7 @@ export async function POST(request: ServerRequest): Promise<Response> {
       businessEvidence,
       businessRecords,
       intentOverride: resolvedIntent,
+      semanticInterpretation,
     });
 
     try {
