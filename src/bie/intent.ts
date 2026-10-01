@@ -1,7 +1,32 @@
 import type { RequestContext } from "../intelligence/types.js";
 
 export type IntentKind="investigate"|"compare"|"plan"|"create"|"retrieve"|"explain"|"monitor"|"unknown";
-export type ResolvedIntent={kind:IntentKind;label:string;normalizedRequest:string;requiredCapabilities:string[];needsBusinessData:boolean;needsExternalResearch:boolean;ambiguity:"none"|"material";candidates?:Array<{kind:IntentKind;score:number;reasons:string[]}>;context?:RequestContext;secondaryIntents?:IntentKind[]};
+export type Purpose = "understand"|"learn"|"decide"|"discover"|"compare"|"investigate"|"plan"|"create"|"retrieve"|"monitor"|"evaluate"|"improve"|"simulate"|"communicate"|"use_busiq"|"other";
+export type BusinessRelevance = "direct"|"indirect"|"none"|"unknown";
+export type BusinessStage = "pre-business"|"existing-business"|"unknown";
+export type AnswerMode = "direct_answer"|"explanation"|"business_analysis"|"investigation"|"comparison"|"decision_support"|"planning"|"creation"|"research"|"clarification"|"system_explanation";
+
+export type ResolvedIntent={
+  kind:IntentKind;
+  label:string;
+  normalizedRequest:string;
+  requiredCapabilities:string[];
+  needsBusinessData:boolean;
+  needsExternalResearch:boolean;
+  ambiguity:"none"|"material";
+  candidates?:Array<{kind:IntentKind;score:number;reasons:string[]}>;
+  context?:RequestContext;
+  secondaryIntents?:IntentKind[];
+  meaning?:string;
+  purpose?:Purpose;
+  desiredOutcome?:string;
+  businessRelevance?:BusinessRelevance;
+  businessStage?:BusinessStage;
+  answerMode?:AnswerMode;
+  requiresEvidence?:boolean;
+  requiresUserInput?:boolean;
+  ambiguityDetails?:string[];
+};
 
 const rules:Array<{kind:IntentKind;label:string;patterns:RegExp[];capabilities:string[]}>= [
 {kind:"investigate",label:"Investigate a business situation",patterns:[/\bwhy\b/i,/\bhow come\b/i,/\bwhat (?:caused|is causing|is behind|happened)\b/i,/\bcaus(?:e|ing|es|al)\b/i,/\b(?:declin|drop|fall|plummet|slump|slow|stagnat|underperform)/i,/\b(?:problem|issue|trouble)\b/i,/\b(?:investigat|diagnos|figure out why)\b/i,/\bwhat'?s going on\b/i],capabilities:["business-analysis","evidence-review"]},
