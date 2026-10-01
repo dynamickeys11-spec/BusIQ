@@ -18,7 +18,7 @@ export default async function handler(request: Request): Promise<Response> {
   try {
     const body = await request.json() as { businessId?: string; domain?: BusinessDomain; csv?: string; source?: string; mapping?: Record<string, string> };
     if (!body.businessId || !body.domain || !body.csv) return json({ error: "businessId, domain and csv are required.", requestId }, 400);
-    if (!Object.prototype.hasOwnProperty.call(tableByDomain, body.domain)) return json({ error: "Unsupported business domain.", requestId }, 400);
+    if (!["customers","sales","money","expenses","products","inventory","suppliers","operations","projects","marketing","people"].includes(body.domain)) return json({ error: "Unsupported business domain.", requestId }, 400);
     if (body.csv.length > 2_000_000) return json({ error: "CSV exceeds the 2MB synchronous import limit.", requestId }, 413);
 
     const scope = await getAuthorizedBusinessIds(authentication.supabase, authentication.user.id);
