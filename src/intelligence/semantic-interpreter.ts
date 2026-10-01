@@ -56,7 +56,12 @@ function parse(text: string): ModelSemanticInterpretation {
   }
   if (value.time !== undefined && typeof value.time !== "string") throw new Error("Invalid time.");
   const registered = new Set(listCapabilities().map(item => item.id));
-  const capabilities = [...new Set(value.requiredCapabilities!.map(item => item.trim()).filter(item => registered.has(item)))].slice(0, 30);
+  const requestedCapabilities = [...new Set(value.requiredCapabilities!.map(item => item.trim()).filter(Boolean))];
+  const unknownCapabilities = requestedCapabilities.filter(item => !registered.has(item));
+  if (unknownCapabilities.length) {
+    throw new Error(`Model requested unregistered capabilities: ${unknownCapabilities.join(", ")}.`);
+  }
+  const capabilities = requestedCapabilities.slice(0, 30);
   return {
     kind: value.kind!,
     label: value.label!.trim().slice(0, 240),
