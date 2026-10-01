@@ -14,7 +14,8 @@ export function runBenchmarkSuite(): BenchmarkResult[] {
     const result = runIntelligencePipeline(testCase.request);
     const statusMatches = result.status === testCase.expectedStatus;
     const capabilityMatches = !testCase.requiredCapability || result.intent.requiredCapabilities.includes(testCase.requiredCapability);
-    const completionSafety = !testCase.mustNotClaimCompletion || !/completed|finished|done/i.test(result.answer.detail);
+    const completionSafety =
+      !testCase.mustNotClaimCompletion || !/\b(completed|finished|done)\b/i.test(result.answer.detail);
 
     return {
       id: testCase.id,
