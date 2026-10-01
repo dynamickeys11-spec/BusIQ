@@ -45,7 +45,6 @@ export function getCapability(id: string): CapabilityDescriptor | undefined {
 
 export function describeCapabilities(ids: string[], needsBusinessData: boolean, needsExternalResearch: boolean): CapabilityRequirement[] {
   const required = new Set(ids);
-  required.add("intent-resolution");
   if (needsBusinessData) required.add("business-data-retrieval");
   if (needsExternalResearch) required.add("external-research");
   return [...required].map(id => {
