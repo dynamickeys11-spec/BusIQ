@@ -13,9 +13,9 @@ const rules:Array<{kind:IntentKind;label:string;patterns:RegExp[];capabilities:s
 {kind:"monitor",label:"Monitor a business condition",patterns:[/\bmonitor\b/i,/\btrack\b/i,/\bwatch\b/i,/\balert\b/i],capabilities:["monitoring","business-context"]}];
 
 const currentBusiness=/\b(my|our|this|current|today|yesterday|last|this week|this month|actual|in my business|for my business)\b/i;
-const businessObjects=/\b(sales|revenue|customer|profit|cash|inventory|supplier|expense|orders?|products?|people|operations?|marketing|projects?)\b/i;
+const businessObjects=/\b(sales|revenue|customer|profit|cash|inventory|supplier|expense|orders?|products?|people|operations?|marketing|projects?|price|pricing)\b/i;
 const domainCapabilityPatterns:Array<[string,RegExp]>= [["sales",/\bsales\b/i],["customers",/\bcustomers?\b/i],["money",/\b(revenue|profit|cash)\b/i],["expenses",/\bexpenses?\b/i],["products",/\bproducts?\b/i],["inventory",/\binventory\b/i],["suppliers",/\bsuppliers?\b/i],["people",/\bpeople\b/i],["operations",/\boperations?\b/i],["marketing",/\bmarketing\b/i],["projects",/\bprojects?\b/i]];
-const externalObjects=/\b(market|competitor|industry|regulat|benchmark|trend)\b/i;
+const externalObjects=/\b(markets?|competitors?|industry|regulat(?:ion|ions|ory)?|benchmarks?|trends?)\b/i;
 const timePattern=/\b(today|yesterday|tomorrow|now|currently|latest|recent|this week|this month|last week|last month|last year|next week|next month|\d{4})\b/i;
 const entityPattern=/\b(?:for|about|regarding|on|of)\s+([A-Z][\w&.-]*(?:\s+[A-Z][\w&.-]*){0,3})/g;
 
