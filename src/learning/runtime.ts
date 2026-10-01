@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { OpenAICompatibleModelProvider } from "../providers";
+import { createGroqModelProvider, OpenAICompatibleModelProvider } from "../providers";
 import type { ModelProvider } from "../providers";
 import { evaluateLearningExample, proposeLearnedRule } from "./engine";
 import { defaultLearningPolicy } from "./types";
@@ -10,11 +10,26 @@ type Critique = Omit<LearningEvaluation, "exampleId" | "evaluatedAt" | "score" |
 const runtimeProcess = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
 
 export function getConfiguredModelProvider(): ModelProvider | null {
+  const provider = runtimeProcess?.BUSIQ_MODEL_PROVIDER?.trim().toLowerCase();
+
+  if (provider === "groq") {
+    const apiKey = runtimeProcess?.BUSIQ_MODEL_API_KEY;
+    if (!apiKey) return null;
+    return createGroqModelProvider(
+      runtimeProcess?.BUSIQ_MODEL_NAME || "openai/gpt-oss-120b",
+      apiKey,
+      runtimeProcess?.BUSIQ_MODEL_BASE_URL || "https://api.groq.com/openai/v1",
+    );
+  }
+
   const baseUrl = runtimeProcess?.BUSIQ_MODEL_BASE_URL;
   const model = runtimeProcess?.BUSIQ_MODEL_NAME;
   if (!baseUrl || !model) return null;
+
   return new OpenAICompatibleModelProvider({
-    baseUrl, model, provider: runtimeProcess?.BUSIQ_MODEL_PROVIDER || "local-compatible",
+    baseUrl,
+    model,
+    provider: provider || "local-compatible",
     ...(runtimeProcess?.BUSIQ_MODEL_API_KEY ? { apiKey: runtimeProcess.BUSIQ_MODEL_API_KEY } : {}),
   });
 }
