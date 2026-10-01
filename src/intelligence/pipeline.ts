@@ -17,7 +17,8 @@ import { buildInvestigationPlan } from "./investigation.js";
 import { assessEvidence } from "./evidence-engine.js";
 import { diagnoseSales } from "./business-diagnostics.js";
 import { buildSemanticModel } from "./semantic-model.js";
-import { understandRequest } from "./semantic-understanding.js";
+import { semanticInterpretationToUnderstanding, understandRequest } from "./semantic-understanding.js";
+import type { ModelSemanticInterpretation } from "./semantic-interpreter.js";
 import { buildBusinessDigitalTwin } from "./digital-twin.js";
 import type { ContextState, ContextEntry } from "./context.js";
 import type { IntelligencePipelineResult } from "./types.js";
@@ -29,6 +30,7 @@ export type IntelligencePipelineOptions = {
   businessEvidence?: import("./types.js").EvidenceItem[];
   businessRecords?: import("../business-data/types.js").NormalizedRecord[];
   intentOverride?: ResolvedIntent;
+  semanticInterpretation?: ModelSemanticInterpretation;
 };
 
 function finalizeResult(result: IntelligencePipelineResult, businessRecords: import("../business-data/types.js").NormalizedRecord[] = []): IntelligencePipelineResult {
@@ -36,7 +38,9 @@ function finalizeResult(result: IntelligencePipelineResult, businessRecords: imp
   const worldModel = buildBusinessWorldModel(businessRecords, result.evidence, result.contextUsed ?? []);
   const semanticContext = (result.contextUsed ?? []).filter(entry => entry.kind === "conversation");
   const priorRequest = semanticContext.find(entry => entry.key === "last-request")?.value;
-  const semanticUnderstanding = understandRequest(result.request, result.intent, priorRequest, semanticContext.map(entry => ({ key: entry.key, value: entry.value })));
+  const semanticUnderstanding = result.semanticInterpretation
+    ? semanticInterpretationToUnderstanding(result.request, result.semanticInterpretation)
+    : understandRequest(result.request, result.intent, priorRequest, semanticContext.map(entry => ({ key: entry.key, value: entry.value })));
   const priorPossibilities = (result.contextUsed ?? [])
     .filter(entry => entry.kind === "conversation" && entry.key.startsWith("possibility:"))
     .map(entry => {
