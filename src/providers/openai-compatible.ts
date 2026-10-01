@@ -77,3 +77,17 @@ export function createOllamaModelProvider(
     provider: "ollama",
   });
 }
+
+export function createGroqModelProvider(
+  model = "openai/gpt-oss-120b",
+  apiKey: string,
+  baseUrl = "https://api.groq.com/openai/v1",
+): OpenAICompatibleModelProvider {
+  if (!apiKey.trim()) throw new Error("Groq API key is required.");
+  return new OpenAICompatibleModelProvider({
+    baseUrl,
+    apiKey,
+    model,
+    provider: "groq",
+  });
+}
