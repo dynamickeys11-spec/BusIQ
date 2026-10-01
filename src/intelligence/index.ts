@@ -26,3 +26,10 @@ export type { UsagePolicy, UsageState } from "./usage.js";
 
 export { validateRequestBody } from "./api-validation.js";
 export type { ApiValidationResult } from "./api-validation.js";
+
+export { evaluateCoreIntelligenceLoop, coreIntelligenceLoopPassed } from "./core-loop.js";
+export type { CoreLoopGate } from "./core-loop.js";
+export { buildBusinessDigitalTwin, simulateTwinScenario } from "./digital-twin.js";
+export type { BusinessDigitalTwin, TwinMetric, TwinAssumption, TwinScenario } from "./digital-twin.js";
+export { compareDecisionOutcome, evaluateOutcomeForLearning } from "./outcome-learning.js";
+export type { OutcomeComparison, LearningEvaluation } from "./outcome-learning.js";
