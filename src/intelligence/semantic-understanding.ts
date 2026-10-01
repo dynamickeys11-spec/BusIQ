@@ -108,6 +108,55 @@ function fallbackMeaning(text: string, intent: IntentKind): string {
   return "Understand the user's requested outcome and determine the appropriate BUSIQ response.";
 }
 
+export function semanticInterpretationToUnderstanding(
+  normalizedText: string,
+  interpretation: {
+    meaning: string;
+    purpose: Purpose;
+    desiredOutcome: string;
+    businessRelevance: BusinessRelevance;
+    businessStage: BusinessStage;
+    answerMode: AnswerMode;
+    operation: ConversationOperation;
+    requiresEvidence: boolean;
+    needsBusinessData: boolean;
+    needsExternalResearch: boolean;
+    requiresUserInput: boolean;
+    domains: string[];
+    entities: string[];
+    constraints: string[];
+    time?: string;
+    quantities: string[];
+    references: string[];
+    possibleInterpretations: string[];
+    confidence: "high" | "medium" | "low";
+  },
+): SemanticUnderstanding {
+  return {
+    normalizedText: normalizedText.trim().replace(/\\s+/g, " "),
+    meaning: interpretation.meaning,
+    operation: interpretation.operation,
+    purpose: interpretation.purpose,
+    desiredOutcome: interpretation.desiredOutcome,
+    businessRelevance: interpretation.businessRelevance,
+    stage: interpretation.businessStage,
+    answerMode: interpretation.answerMode,
+    requiresEvidence: interpretation.requiresEvidence,
+    requiresBusinessData: interpretation.needsBusinessData,
+    requiresExternalResearch: interpretation.needsExternalResearch,
+    requiresUserInput: interpretation.requiresUserInput,
+    domains: interpretation.domains,
+    entities: interpretation.entities,
+    constraints: interpretation.constraints,
+    time: interpretation.time,
+    quantities: interpretation.quantities,
+    references: interpretation.references,
+    possibleInterpretations: interpretation.possibleInterpretations,
+    confidence: interpretation.confidence,
+    signals: ["model-semantic-contract", "capability-aware-understanding", "context-aware-understanding"],
+  };
+}
+
 export function understandRequest(
   text: string,
   intent: ResolvedIntent,
