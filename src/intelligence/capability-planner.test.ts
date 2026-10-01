@@ -23,15 +23,18 @@ const base = {
 } as any;
 
 describe("capability planning", () => {
-  it("expands dependencies into an ordered execution path", () => {
+  it("expands dependencies into an executable path", () => {
     const plan = planCapabilities(base, { entries: [], references: [], unresolvedReferences: [], summary: [] });
     expect(plan.steps.map(step => step.capabilityId)).toEqual(["business-context", "planning"]);
     expect(plan.blocked).toEqual([]);
     expect(plan.ready).toContain("planning");
   });
 
-  it("blocks an unavailable capability instead of pretending it is executable", () => {
-    const plan = planCapabilities({ ...base, requiredCapabilities: ["business-analysis"], needsBusinessData: true }, { entries: [], references: [], unresolvedReferences: [], summary: [] });
+  it("blocks an unavailable capability and its dependent analysis", () => {
+    const plan = planCapabilities(
+      { ...base, requiredCapabilities: ["business-analysis"], needsBusinessData: true },
+      { entries: [], references: [], unresolvedReferences: [], summary: [] },
+    );
     expect(plan.blocked).toContain("business-data-retrieval");
     expect(plan.blocked).toContain("business-analysis");
   });
