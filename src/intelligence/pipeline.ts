@@ -13,6 +13,7 @@ import { buildActionDecision, getActionForKind, resolveActionRequest } from "./a
 import { flattenContext, selectRelevantContext } from "./context.js";
 import { buildBusinessWorldModel } from "./world-model.js";
 import { buildInvestigationPlan } from "./investigation.js";
+import { assessEvidence } from "./evidence-engine.js";
 import type { ContextState, ContextEntry } from "./context.js";
 import type { IntelligencePipelineResult } from "./types.js";
 
@@ -29,6 +30,7 @@ function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelin
     ...result,
     worldModel,
     investigation: buildInvestigationPlan(result.request, worldModel, result.evidence),
+    verification: { ...result.verification, diagnostics: [...(result.verification.diagnostics ?? []), ...assessEvidence(result.evidence).diagnostics], sufficiency: assessEvidence(result.evidence).sufficiency },
     answerQuality: validateAnswerQuality(result),
   };
 }
