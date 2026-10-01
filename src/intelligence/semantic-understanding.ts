@@ -83,6 +83,23 @@ function fallbackBusinessRelevance(text: string, stage: BusinessStage): Business
   return stage === "unknown" ? "unknown" : "direct";
 }
 
+function fallbackDesiredOutcome(intent: ResolvedIntent): string {
+  if (intent.desiredOutcome) return intent.desiredOutcome;
+  switch (intent.answerMode) {
+    case "comparison": return "Compare the relevant alternatives using explicit criteria and available evidence.";
+    case "investigation": return "Understand what is happening and test candidate explanations.";
+    case "planning": return "Produce an actionable plan grounded in the available context.";
+    case "creation": return "Produce the requested artifact without inventing unsupported facts.";
+    case "direct_answer": return "Provide the requested information directly.";
+    case "explanation": return "Explain the requested concept clearly and accurately.";
+    case "system_explanation": return "Explain BUSIQ's operation, capabilities, requirements, or limitations.";
+    case "business_analysis": return "Analyze the relevant business condition using available evidence.";
+    case "decision_support": return "Clarify the decision, trade-offs, evidence, and uncertainty.";
+    case "research": return "Gather and synthesize the required external evidence.";
+    default: return "Understand and respond to the user's requested outcome.";
+  }
+}
+
 function fallbackMeaning(text: string, intent: IntentKind): string {
   if (/\b(?:how do you work|how does busiq work|what can you do|what do you need from me|how can i get (?:the )?best results|best performance)\b/i.test(text)) {
     return "Understand how BUSIQ operates and what conditions or inputs help it perform well.";
@@ -132,7 +149,7 @@ export function understandRequest(
     operation,
     subject: intent.context?.scope,
     purpose: intent.purpose ?? fallbackPurpose(intent.kind),
-    desiredOutcome: intent.desiredOutcome,
+    desiredOutcome: fallbackDesiredOutcome(intent),
     businessRelevance: intent.businessRelevance ?? fallbackBusinessRelevance(normalizedText, stage),
     stage,
     answerMode: intent.answerMode ?? fallbackAnswerMode(intent.kind),
