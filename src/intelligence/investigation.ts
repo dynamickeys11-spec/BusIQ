@@ -1,5 +1,6 @@
 import type { EvidenceItem, IntelligencePipelineResult } from "./types.js";
 import type { BusinessWorldModel } from "./world-model.js";
+import type { SemanticModel } from "./semantic-model.js";
 
 export type InvestigationHypothesis = {
   id: string;
@@ -65,8 +66,13 @@ export function buildInvestigationPlan(
   question: string,
   worldModel: BusinessWorldModel,
   evidence: EvidenceItem[],
+  semanticModel?: SemanticModel,
 ): InvestigationPlan {
-  const hypotheses: InvestigationHypothesis[] = candidateHypotheses(question).map((statement, index) => ({
+  const semanticHypotheses = (semanticModel?.possibilities ?? [])
+    .filter(item => item.type === "hypothesis" || item.type === "opportunity" || item.type === "scenario" || item.type === "option")
+    .map(item => item.statement);
+  const baseHypotheses = semanticHypotheses.length ? semanticHypotheses : candidateHypotheses(question);
+  const hypotheses: InvestigationHypothesis[] = baseHypotheses.map((statement, index) => ({
     id: `hypothesis-${index + 1}`,
     statement,
     status: "unverified" as const,
@@ -100,7 +106,11 @@ export function buildInvestigationPlan(
     hypotheses,
     questions,
     informationGaps: [...new Set(gaps)],
-    stoppingReason: gaps.length ? "Investigation is evidence-limited; BUSIQ should not select a causal explanation yet." : undefined,
+    stoppingReason: gaps.length
+      ? semanticModel?.intent.stage === "pre-business"
+        ? "Opportunity exploration is evidence-limited; BUSIQ should validate candidate possibilities before treating them as viable business options."
+        : "Investigation is evidence-limited; BUSIQ should not select a causal explanation yet."
+      : undefined,
   };
 }
 
@@ -111,6 +121,6 @@ export function attachInvestigation(
   return {
     ...result,
     worldModel,
-    investigation: buildInvestigationPlan(result.request, worldModel, result.evidence),
+    investigation: buildInvestigationPlan(result.request, worldModel, result.evidence, result.semanticModel),
   };
 }
