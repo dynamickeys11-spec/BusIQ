@@ -198,7 +198,10 @@ export async function POST(request: ServerRequest): Promise<Response> {
           const rows = await retrieveBusinessEvidence(authentication.supabase, businessId, domain);
           retrieved.push(...rows);
         }
-        businessRecords = retrieved.flatMap((item) => item.record ? [item.record] : []);
+        businessRecords = retrieved.flatMap((item) => item.record ? [{
+          ...item.record,
+          metadata: { ...(item.record.metadata ?? {}), evidenceId: item.id },
+        }] : []);
         businessEvidence = retrieved.map((item) => ({
           id: item.id,
           kind: "retrieved" as const,
@@ -210,6 +213,8 @@ export async function POST(request: ServerRequest): Promise<Response> {
           verification: "verified" as const,
           relevance: "direct" as const,
           quality: "strong" as const,
+          scope: { businessId },
+          evidenceDate: new Date().toISOString(),
         }));
       } catch (error) {
         console.warn(JSON.stringify({
@@ -284,6 +289,7 @@ export async function POST(request: ServerRequest): Promise<Response> {
       context: enrichedContext,
       externalEvidence,
       businessEvidence,
+      businessRecords,
     });
 
     try {
