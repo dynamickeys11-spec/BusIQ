@@ -5,7 +5,10 @@ describe("semantic model", () => {
   it("separates a pre-business request from actual evidence", () => {
     const model = buildSemanticModel("I don't have a business idea and want to start something unusual", [
       { id: "request", kind: "user", label: "User request", detail: "I don't have a business idea and want to start something unusual", source: "User input" },
-    ], "unknown");
+    ], "unknown", [], [], {
+      businessStage: "pre-business",
+      desiredOutcome: "Discover business opportunities compatible with the user's constraints.",
+    });
 
     expect(model.intent.stage).toBe("pre-business");
     expect(model.intent.uncertainty).toBe("high");
@@ -24,6 +27,7 @@ describe("semantic model", () => {
     expect(model.possibilities[0]?.status).toBe("unresolved");
     expect(model.actual.some(item => item.kind === "observed")).toBe(true);
   });
+
   it("retains prior possibility memory without promoting it to actual evidence", () => {
     const model = buildSemanticModel("What about the second one?", [
       { id: "request", kind: "user", label: "User request", detail: "What about the second one?", source: "User input" },
