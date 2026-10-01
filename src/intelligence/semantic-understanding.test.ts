@@ -1,64 +1,97 @@
 import { describe, expect, it } from "vitest";
-import { resolveIntent } from "../bie/intent.js";
-import { understandRequest } from "./semantic-understanding.js";
+import { semanticInterpretationToUnderstanding } from "./semantic-understanding.js";
+
+function interpretation(overrides: Partial<Parameters<typeof semanticInterpretationToUnderstanding>[1]> = {}) {
+  return {
+    meaning: "The user wants a useful business-oriented answer.",
+    purpose: "understand" as const,
+    desiredOutcome: "Answer the user's requested outcome.",
+    businessRelevance: "direct" as const,
+    businessStage: "unknown" as const,
+    answerMode: "direct_answer" as const,
+    operation: "NEW_INTENT" as const,
+    requiresEvidence: false,
+    needsBusinessData: false,
+    needsExternalResearch: false,
+    requiresUserInput: false,
+    domains: [],
+    entities: [],
+    constraints: [],
+    time: undefined,
+    quantities: [],
+    references: [],
+    possibleInterpretations: [],
+    confidence: "high" as const,
+    ...overrides,
+  };
+}
 
 describe("semantic understanding", () => {
-  it("preserves meaning and response strategy across varied natural language", () => {
+  it("accepts model-derived meaning and response strategy across varied requests", () => {
     const cases = [
-      ["What should I focus on when starting a small business?", "plan", "planning"],
-      ["My sales have fallen. What's going on?", "investigate", "investigation"],
-      ["Make me a business plan for a laundry service.", "plan", "planning"],
-      ["How much did we sell last month?", "retrieve", "direct_answer"],
-      ["Explain gross profit to me.", "explain", "explanation"],
-      ["Which is better for this business, option A or B?", "compare", "comparison"],
+      ["plan", "planning"],
+      ["investigate", "investigation"],
+      ["plan", "planning"],
+      ["retrieve", "direct_answer"],
+      ["understand", "explanation"],
+      ["compare", "comparison"],
     ] as const;
-    for (const [request, expectedIntent, expectedMode] of cases) {
-      const intent = resolveIntent(request);
-      expect(intent.kind, request).toBe(expectedIntent);
-      const understanding = understandRequest(request, intent);
-      expect(understanding.normalizedText).toBe(request);
-      expect(understanding.desiredOutcome ?? intent.desiredOutcome).toBeDefined();
+
+    for (const [purpose, expectedMode] of cases) {
+      const understanding = semanticInterpretationToUnderstanding(
+        "model supplied request",
+        interpretation({
+          purpose,
+          answerMode: expectedMode,
+          desiredOutcome: "Complete the requested outcome.",
+        }),
+      );
       expect(understanding.answerMode).toBe(expectedMode);
+      expect(understanding.desiredOutcome).toBeDefined();
+      expect(understanding.signals).toContain("model-semantic-contract");
     }
   });
 
-  it("recognizes BUSIQ questions as system understanding rather than business-data requests", () => {
-    const requests = [
-      "How do you work?",
-      "How does BUSIQ work?",
-      "What can you do for me?",
-      "What information do you need from me?",
+  it("represents BUSIQ questions as system understanding", () => {
+    const understanding = semanticInterpretationToUnderstanding(
       "What can keep you at your best performance?",
-    ];
-    for (const request of requests) {
-      const baseline = resolveIntent(request);
-      const understanding = understandRequest(request, {
-        ...baseline,
-        kind: "explain",
-        answerMode: "system_explanation",
+      interpretation({
+        meaning: "The user wants to understand BUSIQ's operation and how to get better results.",
         purpose: "use_busiq",
         businessRelevance: "indirect",
-        businessStage: "unknown",
-        meaning: "Understand BUSIQ's operation and capabilities.",
-        desiredOutcome: "Understand how BUSIQ works and how to use it effectively.",
-      });
-      expect(understanding.answerMode, request).toBe("system_explanation");
-      expect(understanding.requiresBusinessData, request).toBe(false);
-    }
+        answerMode: "system_explanation",
+        desiredOutcome: "Explain BUSIQ's operation, capabilities, requirements, and performance conditions.",
+      }),
+    );
+    expect(understanding.answerMode).toBe("system_explanation");
+    expect(understanding.requiresBusinessData).toBe(false);
   });
 
-  it("detects pre-business constraints and conversation references", () => {
-    const request = "I don't have a business idea. What can I start with ₦100,000?";
-    const preBusiness = understandRequest(request, {
-      ...resolveIntent(request),
-      businessStage: "pre-business",
-      answerMode: "planning",
-      purpose: "discover",
-    });
+  it("preserves pre-business constraints and conversation references supplied by the model", () => {
+    const preBusiness = semanticInterpretationToUnderstanding(
+      "I don't have a business idea. What can I start with ₦100,000?",
+      interpretation({
+        purpose: "discover",
+        businessStage: "pre-business",
+        answerMode: "planning",
+        quantities: ["₦100,000"],
+        constraints: ["no existing business idea"],
+      }),
+    );
     expect(preBusiness.stage).toBe("pre-business");
-    expect(preBusiness.quantities.some(value => value.includes("100,000"))).toBe(true);
-    const followUp = understandRequest("What about the second option?", resolveIntent("What about the second option?"), "Compare three business ideas for me.");
+    expect(preBusiness.quantities).toContain("₦100,000");
+
+    const followUp = semanticInterpretationToUnderstanding(
+      "What about the second option?",
+      interpretation({
+        purpose: "compare",
+        businessStage: "pre-business",
+        answerMode: "comparison",
+        operation: "EXPANSION",
+        references: ["second option"],
+      }),
+    );
     expect(followUp.operation).toBe("EXPANSION");
-    expect(followUp.references.length).toBeGreaterThan(0);
+    expect(followUp.references).toContain("second option");
   });
 });
