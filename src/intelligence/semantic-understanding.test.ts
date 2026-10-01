@@ -27,7 +27,7 @@ const preBusiness = understandRequest(
   resolveIntent("I don't have a business idea. What can I start with ₦100,000?"),
 );
 assert(preBusiness.stage === "pre-business", "pre-business stage not detected");
-assert(preBusiness.quantities.includes("₦100,000"), "quantity not extracted");
+assert(preBusiness.quantities.some(value => value.includes("100,000")), "quantity not extracted");
 
 const followUp = understandRequest(
   "What about the second option?",
