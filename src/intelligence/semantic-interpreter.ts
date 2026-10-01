@@ -15,6 +15,7 @@ export type ModelSemanticInterpretation = {
   entities: string[];
   constraints: string[];
   possibleInterpretations: string[];
+  referencedPossibilities?: number[];
 };
 
 function parse(text: string): ModelSemanticInterpretation {
