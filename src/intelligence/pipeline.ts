@@ -22,6 +22,7 @@ import type { ModelSemanticInterpretation } from "./semantic-interpreter.js";
 import { buildBusinessDigitalTwin } from "./digital-twin.js";
 import type { ContextState, ContextEntry } from "./context.js";
 import type { IntelligencePipelineResult } from "./types.js";\nimport { planCapabilities } from "./capability-planner.js";
+import { buildCapabilityExecutionGraph } from "./execution-graph.js";
 
 export type IntelligencePipelineOptions = {
   context?: ContextState | ContextEntry[];
@@ -77,6 +78,12 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const contextSummary = contextUsed.length ? ` ${contextUsed.length} usable persistent context item(s) informed planning; persistent context is not treated as verified evidence.` : "";
   const ambiguity = detectAmbiguity(normalized, intent);
   const capabilities = describeCapabilities(intent.requiredCapabilities, intent.needsBusinessData, intent.needsExternalResearch);
+  const capabilityPlan = options.semanticInterpretation
+    ? planCapabilities(options.semanticInterpretation, semanticContextResolution ?? { entries: [], references: [], unresolvedReferences: [], summary: [] }, [...(options.businessEvidence ?? []), ...(options.externalEvidence ?? [])])
+    : undefined;
+  const executionGraph = options.semanticInterpretation
+    ? buildCapabilityExecutionGraph(options.semanticInterpretation, semanticContextResolution ?? { entries: [], references: [], unresolvedReferences: [], summary: [] }, [...(options.businessEvidence ?? []), ...(options.externalEvidence ?? [])])
+    : undefined;
   const routing = routeCapabilities(intent);
   const action = resolveActionRequest(normalized);
   const actionDefinition = action ? getActionForKind(action.kind) : undefined;
@@ -167,7 +174,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
       ].join(" ") + " BUSIQ will not invent the missing capability, connection, or action result." + contextSummary,
         nextAction: "Connect the required source or implement/connect the required execution capability.",
       },
-      trace: ["Normalize request", "Resolve required capabilities", "Route to suitable tools", "Plan research", "Verify available evidence", "Stop before unsupported execution"],
+      trace: ["Normalize request", "Resolve required capabilities", "Resolve context", "Build capability execution graph", "Inspect graph blockers", "Stop before unsupported execution"],
     });
   }
 
@@ -232,7 +239,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
         detail: executionBlocked.map(item => item.reason).join(" ") + " BUSIQ will not claim work was completed when an executor is missing." + contextSummary,
         nextAction: "Implement or connect the missing executor before continuing.",
       },
-      trace: ["Normalize request", "Resolve intent", "Check material ambiguity", "Resolve capabilities", "Route to suitable tools", "Execute available tools", "Verify execution evidence", "Stop on missing executor"],
+      trace: ["Normalize request", "Resolve intent", "Check material ambiguity", "Resolve context", "Build capability execution graph", "Execute available graph nodes", "Verify execution evidence", "Stop on missing executor"],
     });
   }
 
@@ -263,6 +270,6 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
         : "BUSIQ completed the available local execution path without claiming unsupported facts.") + contextSummary,
       nextAction: plan ? "Review the plan structure, then connect business evidence when the next step requires real facts." : "Continue with the next available capability.",
     },
-    trace: ["Normalize request", "Resolve intent", "Load usable persistent context", "Check material ambiguity", "Resolve capabilities", "Route to suitable tools", "Plan research", "Execute available tools", "Verify execution evidence", "Return verified execution result"],
+    trace: ["Normalize request", "Resolve intent", "Load usable persistent context", "Check material ambiguity", "Resolve context", "Build capability execution graph", "Execute graph stages", "Verify execution evidence", "Return verified execution result"],
   });
 }
