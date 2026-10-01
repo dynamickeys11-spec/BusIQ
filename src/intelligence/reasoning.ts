@@ -1,4 +1,4 @@
-import type { EvidenceItem, ReasoningChain, ReasoningConclusion, ReasoningResult } from "./types";
+import type { EvidenceItem, ReasoningChain, ReasoningConclusion, ReasoningResult } from "./types.js";
 
 function supportedFact(item: EvidenceItem): ReasoningConclusion {
   return {

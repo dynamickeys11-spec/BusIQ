@@ -1,7 +1,7 @@
-import type { ResolvedIntent } from "../bie/intent";
-import type { CapabilityRequirement } from "./types";
-import { getTool, type ToolDescriptor } from "./tools";
-import { getCapability } from "./capabilities";
+import type { ResolvedIntent } from "../bie/intent.js";
+import type { CapabilityRequirement } from "./types.js";
+import { getTool, type ToolDescriptor } from "./tools.js";
+import { getCapability } from "./capabilities.js";
 
 export type RoutingDecision = {
   capabilityId: string;

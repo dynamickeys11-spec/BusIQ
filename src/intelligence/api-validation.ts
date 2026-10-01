@@ -1,4 +1,4 @@
-import type { ContextState } from "./context";
+import type { ContextState } from "./context.js";
 
 export type ApiValidationResult =
   | { ok: true; request: string; context?: ContextState; businessId?: string }

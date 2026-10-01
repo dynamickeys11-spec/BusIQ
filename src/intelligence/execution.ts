@@ -1,5 +1,5 @@
-import type { ToolExecutionRequest, ToolExecutionResult } from "./tools";
-import { getTool } from "./tools";
+import type { ToolExecutionRequest, ToolExecutionResult } from "./tools.js";
+import { getTool } from "./tools.js";
 
 function buildLocalPlan(request: string) {
   const clean = request.trim();

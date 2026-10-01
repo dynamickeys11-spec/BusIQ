@@ -1,4 +1,4 @@
-import type { BusinessConnector, BusinessDomain, ConnectorQuery, ConnectorResult } from "./types";
+import type { BusinessConnector, BusinessDomain, ConnectorQuery, ConnectorResult } from "./types.js";
 
 class UnconfiguredConnector implements BusinessConnector {
   readonly id = "business-connector-unconfigured";

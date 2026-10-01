@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ModelProvider, ModelRequest, ModelResponse, ProviderHealth } from "./types";
+import type { ModelProvider, ModelRequest, ModelResponse, ProviderHealth } from "./types.js";
 
 export class SupabaseEdgeModelProvider implements ModelProvider {
   constructor(

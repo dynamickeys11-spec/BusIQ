@@ -1,4 +1,4 @@
-import type { EvidenceDiagnostic, EvidenceItem, EvidenceQuality, EvidenceSufficiency, ResearchStep } from "./types";
+import type { EvidenceDiagnostic, EvidenceItem, EvidenceQuality, EvidenceSufficiency, ResearchStep } from "./types.js";
 
 function scopeKey(scope: EvidenceItem["scope"]): string {
   return JSON.stringify(scope ?? {});

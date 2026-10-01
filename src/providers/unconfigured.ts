@@ -12,7 +12,7 @@ import type {
   ResearchProvider,
   ResearchRequest,
   ResearchResult,
-} from "./types";
+} from "./types.js";
 
 function unavailable(provider: string): ProviderHealth {
   return {

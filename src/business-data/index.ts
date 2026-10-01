@@ -4,9 +4,9 @@ export type {
   ConnectorQuery,
   ConnectorResult,
   BusinessConnector,
-} from "./types";
+} from "./types.js";
 
 export {
   listBusinessConnectors,
   getBusinessConnector,
-} from "./registry";
+} from "./registry.js";

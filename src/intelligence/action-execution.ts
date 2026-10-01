@@ -3,8 +3,8 @@ import {
   type ActionAuthorization,
   type ActionDefinition,
   type ActionConfirmation,
-} from "./actions";
-import { appendActionAuditEvent, createActionAuditEvent, type ActionAuditEvent } from "./action-audit";
+} from "./actions.js";
+import { appendActionAuditEvent, createActionAuditEvent, type ActionAuditEvent } from "./action-audit.js";
 
 export type ActionExecutionState = "executed" | "blocked" | "failed";
 

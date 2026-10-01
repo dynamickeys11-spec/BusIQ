@@ -1,4 +1,4 @@
-import type { ToolExecutionResult } from "./tools";
+import type { ToolExecutionResult } from "./tools.js";
 
 export function validateToolResult(result: ToolExecutionResult): ToolExecutionResult {
   if (result.state === "blocked") return result;

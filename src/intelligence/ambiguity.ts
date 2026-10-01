@@ -1,5 +1,5 @@
-import type { AmbiguityIssue } from "./types";
-import type { ResolvedIntent } from "../bie/intent";
+import type { AmbiguityIssue } from "./types.js";
+import type { ResolvedIntent } from "../bie/intent.js";
 
 export function detectAmbiguity(request: string, intent: ResolvedIntent): AmbiguityIssue[] {
   const words = request.trim().split(/\s+/).filter(Boolean);

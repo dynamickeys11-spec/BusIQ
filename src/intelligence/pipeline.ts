@@ -1,24 +1,24 @@
-import { resolveIntent } from "../bie/intent";
-import { detectAmbiguity } from "./ambiguity";
-import { describeCapabilities } from "./capabilities";
-import { buildResearchPlan } from "./research";
-import { executeTool } from "./execution";
-import { routeCapabilities } from "./router";
-import { verifyEvidence } from "./verify";
-import { reasonFromEvidence } from "./reasoning";
-import { validateToolResult } from "./result-validation";
-import { assessResearchEvidence, decideResearchStopping } from "./research-assessment";
-import { validateAnswerQuality } from "./answer-quality";
-import { buildActionDecision, getActionForKind, resolveActionRequest } from "./actions";
-import { flattenContext, selectRelevantContext } from "./context";
-import type { ContextState, ContextEntry } from "./context";
-import type { IntelligencePipelineResult } from "./types";
+import { resolveIntent } from "../bie/intent.js";
+import { detectAmbiguity } from "./ambiguity.js";
+import { describeCapabilities } from "./capabilities.js";
+import { buildResearchPlan } from "./research.js";
+import { executeTool } from "./execution.js";
+import { routeCapabilities } from "./router.js";
+import { verifyEvidence } from "./verify.js";
+import { reasonFromEvidence } from "./reasoning.js";
+import { validateToolResult } from "./result-validation.js";
+import { assessResearchEvidence, decideResearchStopping } from "./research-assessment.js";
+import { validateAnswerQuality } from "./answer-quality.js";
+import { buildActionDecision, getActionForKind, resolveActionRequest } from "./actions.js";
+import { flattenContext, selectRelevantContext } from "./context.js";
+import type { ContextState, ContextEntry } from "./context.js";
+import type { IntelligencePipelineResult } from "./types.js";
 
 export type IntelligencePipelineOptions = {
   context?: ContextState | ContextEntry[];
   now?: Date;
-  externalEvidence?: import("./types").EvidenceItem[];
-  businessEvidence?: import("./types").EvidenceItem[];
+  externalEvidence?: import("./types.js").EvidenceItem[];
+  businessEvidence?: import("./types.js").EvidenceItem[];
 };
 
 function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelineResult {

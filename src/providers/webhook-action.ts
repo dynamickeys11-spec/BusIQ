@@ -3,7 +3,7 @@ import type {
   ActionExecutionResult,
   ActionProvider,
   ProviderHealth,
-} from "./types";
+} from "./types.js";
 
 const runtimeProcess = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
 

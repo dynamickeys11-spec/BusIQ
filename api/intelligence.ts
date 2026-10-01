@@ -1,9 +1,9 @@
 import { defaultUsagePolicy, runIntelligencePipeline } from "../src/intelligence/index.js";
-import { resolveIntent } from "../src/bie/intent";
-import { createFreeWebResearchProvider, SupabaseEdgeModelProvider } from "../src/providers";
-import type { BusinessDomain } from "../src/business-data";
-import { validateRequestBody } from "../src/intelligence/api-validation";
-import { getAuthenticatedUser, getAuthorizedBusinessIds } from "./auth";
+import { resolveIntent } from "../src/bie/intent.js";
+import { createFreeWebResearchProvider, SupabaseEdgeModelProvider } from "../src/providers/index.js";
+import type { BusinessDomain } from "../src/business-data/index.js";
+import { validateRequestBody } from "../src/intelligence/api-validation.js";
+import { getAuthenticatedUser, getAuthorizedBusinessIds } from "./auth.js";
 
 export default async function handler(request: Request): Promise<Response> {
   const requestId = crypto.randomUUID();
@@ -58,7 +58,7 @@ export default async function handler(request: Request): Promise<Response> {
       return json({ error: validation.error, requestId }, validation.status);
     }
 
-    let externalEvidence: import("../src/intelligence/types").EvidenceItem[] = [];
+    let externalEvidence: import("../src/intelligence/types.js").EvidenceItem[] = [];
     const resolvedIntent = resolveIntent(validation.request);
 
     if (resolvedIntent.needsExternalResearch) {
@@ -103,8 +103,8 @@ export default async function handler(request: Request): Promise<Response> {
       });
 
       try {
-        const { getConfiguredModelProvider } = await import("../src/learning/runtime");
-        const { generateModelAnswer } = await import("../src/intelligence/model-answer");
+        const { getConfiguredModelProvider } = await import("../src/learning/runtime.js");
+        const { generateModelAnswer } = await import("../src/intelligence/model-answer.js");
         const provider = getConfiguredModelProvider() ?? new SupabaseEdgeModelProvider(authentication.supabase);
         result = await generateModelAnswer(provider, result);
       } catch (error) {
@@ -151,14 +151,14 @@ export default async function handler(request: Request): Promise<Response> {
       return json({ error, requestId, code: scope.businessIds.length === 0 ? "BUSINESS_SETUP_REQUIRED" : "BUSINESS_SELECTION_REQUIRED" }, 409);
     }
 
-    let businessEvidence: import("../src/intelligence/types").EvidenceItem[] = [];
+    let businessEvidence: import("../src/intelligence/types.js").EvidenceItem[] = [];
     if (resolvedIntent.needsBusinessData) {
       const domains = resolvedIntent.requiredCapabilities.filter((capability): capability is BusinessDomain =>
         ["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(capability),
       );
 
       try {
-        const { retrieveBusinessEvidence } = await import("../src/business-data/runtime");
+        const { retrieveBusinessEvidence } = await import("../src/business-data/runtime.js");
         const retrieved = [];
         for (const domain of [...new Set(domains)]) {
           const rows = await retrieveBusinessEvidence(authentication.supabase, businessId, domain);
@@ -196,7 +196,7 @@ export default async function handler(request: Request): Promise<Response> {
     let learningMemory: Array<{ id: string; exampleId: string; content: string; similarity: number }> = [];
     let knowledgeMemory: Array<{ id: string; documentId: string; content: string; similarity: number }> = [];
     try {
-      const { retrieveLearningMemory } = await import("../src/learning/runtime");
+      const { retrieveLearningMemory } = await import("../src/learning/runtime.js");
       learningMemory = await retrieveLearningMemory(authentication.supabase, businessId, validation.request);
     } catch (error) {
       console.warn(JSON.stringify({
@@ -208,7 +208,7 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     try {
-      const { retrieveKnowledge } = await import("../src/knowledge/runtime");
+      const { retrieveKnowledge } = await import("../src/knowledge/runtime.js");
       knowledgeMemory = await retrieveKnowledge(authentication.supabase, businessId, validation.request);
     } catch (error) {
       console.warn(JSON.stringify({
@@ -252,8 +252,8 @@ export default async function handler(request: Request): Promise<Response> {
     });
 
     try {
-      const { getConfiguredModelProvider } = await import("../src/learning/runtime");
-      const { generateModelAnswer } = await import("../src/intelligence/model-answer");
+      const { getConfiguredModelProvider } = await import("../src/learning/runtime.js");
+      const { generateModelAnswer } = await import("../src/intelligence/model-answer.js");
       const provider = getConfiguredModelProvider() ?? new SupabaseEdgeModelProvider(authentication.supabase);
       result = await generateModelAnswer(provider, result);
     } catch (error) {
@@ -279,7 +279,7 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     try {
-      const { getConfiguredModelProvider, evaluateAndStoreLearning } = await import("../src/learning/runtime");
+      const { getConfiguredModelProvider, evaluateAndStoreLearning } = await import("../src/learning/runtime.js");
       const evaluatorProvider = getConfiguredModelProvider() ?? new SupabaseEdgeModelProvider(authentication.supabase);
       await evaluateAndStoreLearning(
         authentication.supabase,

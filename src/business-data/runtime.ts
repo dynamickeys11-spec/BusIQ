@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { BusinessDomain } from "./types";
+import type { BusinessDomain } from "./types.js";
 
 const tableByDomain: Record<BusinessDomain, string> = {
   customers: "business_customers",

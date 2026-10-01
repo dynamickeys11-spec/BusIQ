@@ -4,8 +4,8 @@ import type {
   LearningExample,
   LearningPolicy,
   LearnedRule,
-} from "./types";
-import { defaultLearningPolicy } from "./types";
+} from "./types.js";
+import { defaultLearningPolicy } from "./types.js";
 
 function clamp(value: number): number {
   return Math.max(0, Math.min(1, value));

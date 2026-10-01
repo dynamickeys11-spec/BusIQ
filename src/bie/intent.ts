@@ -1,4 +1,4 @@
-import type { RequestContext } from "../intelligence/types";
+import type { RequestContext } from "../intelligence/types.js";
 
 export type IntentKind="investigate"|"compare"|"plan"|"create"|"retrieve"|"explain"|"monitor"|"unknown";
 export type ResolvedIntent={kind:IntentKind;label:string;normalizedRequest:string;requiredCapabilities:string[];needsBusinessData:boolean;needsExternalResearch:boolean;ambiguity:"none"|"material";candidates?:Array<{kind:IntentKind;score:number;reasons:string[]}>;context?:RequestContext;secondaryIntents?:IntentKind[]};

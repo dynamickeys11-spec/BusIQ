@@ -1,9 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createGroqModelProvider, OpenAICompatibleModelProvider } from "../providers";
-import type { ModelProvider } from "../providers";
-import { evaluateLearningExample, proposeLearnedRule } from "./engine";
-import { defaultLearningPolicy } from "./types";
-import type { LearningEvaluation, LearningExample } from "./types";
+import { createGroqModelProvider, OpenAICompatibleModelProvider } from "../providers/index.js";
+import type { ModelProvider } from "../providers/index.js";
+import { evaluateLearningExample, proposeLearnedRule } from "./engine.js";
+import { defaultLearningPolicy } from "./types.js";
+import type { LearningEvaluation, LearningExample } from "./types.js";
 
 type RetrievedMemory = { id: string; exampleId: string; content: string; similarity: number };
 type Critique = Omit<LearningEvaluation, "exampleId" | "evaluatedAt" | "score" | "passed"> & { rule?: string };

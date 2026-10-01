@@ -1,4 +1,4 @@
-import type { EvidenceItem } from "./types";
+import type { EvidenceItem } from "./types.js";
 
 export type ResearchStopReason =
   | "sufficient-evidence"

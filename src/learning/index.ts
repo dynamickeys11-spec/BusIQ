@@ -5,7 +5,7 @@ export type {
   LearnedRule,
   LearningDecision,
   LearningPolicy,
-} from "./types";
+} from "./types.js";
 
-export { defaultLearningPolicy } from "./types";
-export { evaluateLearningExample, proposeLearnedRule, promoteLearnedRule } from "./engine";
+export { defaultLearningPolicy } from "./types.js";
+export { evaluateLearningExample, proposeLearnedRule, promoteLearnedRule } from "./engine.js";

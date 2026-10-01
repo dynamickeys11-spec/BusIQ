@@ -14,14 +14,14 @@ export type {
   ActionExecutionRequest,
   ActionExecutionResult,
   ActionProvider,
-} from "./types";
+} from "./types.js";
 
 export {
   OpenAICompatibleModelProvider,
   createOllamaModelProvider,
   createGroqModelProvider,
-} from "./openai-compatible";
+} from "./openai-compatible.js";
 
-export { FreeWebResearchProvider, createFreeWebResearchProvider } from "./free-research";
-export { SupabaseEdgeModelProvider } from "./supabase-edge-model";
-export { WebhookActionProvider } from "./webhook-action";
+export { FreeWebResearchProvider, createFreeWebResearchProvider } from "./free-research.js";
+export { SupabaseEdgeModelProvider } from "./supabase-edge-model.js";
+export { WebhookActionProvider } from "./webhook-action.js";

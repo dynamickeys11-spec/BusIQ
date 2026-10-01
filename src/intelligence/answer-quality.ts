@@ -1,4 +1,4 @@
-import type { AnswerPresentation, IntelligencePipelineResult } from "./types";
+import type { AnswerPresentation, IntelligencePipelineResult } from "./types.js";
 
 export type AnswerQualityIssue =
   | "missing-headline"

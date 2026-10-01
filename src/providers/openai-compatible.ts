@@ -1,4 +1,4 @@
-import type { ModelProvider, ModelRequest, ModelResponse, ProviderHealth } from "./types";
+import type { ModelProvider, ModelRequest, ModelResponse, ProviderHealth } from "./types.js";
 
 export type OpenAICompatibleConfig = {
   baseUrl: string;

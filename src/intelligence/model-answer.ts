@@ -1,5 +1,5 @@
-import type { ModelProvider } from "../providers";
-import type { IntelligencePipelineResult } from "./types";
+import type { ModelProvider } from "../providers/index.js";
+import type { IntelligencePipelineResult } from "./types.js";
 
 type ModelAnswer = {
   headline: string;

@@ -1,5 +1,5 @@
-import type { ResolvedIntent } from "../bie/intent";
-import type { ResearchStep } from "./types";
+import type { ResolvedIntent } from "../bie/intent.js";
+import type { ResearchStep } from "./types.js";
 
 export type ResearchQuery = {
   query: string;

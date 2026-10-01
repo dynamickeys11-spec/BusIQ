@@ -1,4 +1,4 @@
-import type { CapabilityRequirement } from "./types";
+import type { CapabilityRequirement } from "./types.js";
 
 export type CapabilityDescriptor = {
   id: string;

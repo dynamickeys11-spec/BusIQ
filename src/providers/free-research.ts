@@ -1,4 +1,4 @@
-import type { ProviderHealth, ResearchProvider, ResearchRequest, ResearchResult, ResearchSource } from "./types";
+import type { ProviderHealth, ResearchProvider, ResearchRequest, ResearchResult, ResearchSource } from "./types.js";
 
 type SearchHit = { title: string; url: string; snippet: string };
 
