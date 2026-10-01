@@ -19,7 +19,7 @@ export async function requestIntelligence(
     if (anonymous.error || !anonymous.data.session) {
       throw new Error(anonymous.error?.message || "BUSIQ could not create a guest session.");
     }
-    data = { session: anonymous.data.session, user: anonymous.data.user };
+    data = { session: anonymous.data.session };
   }
   const accessToken = data.session?.access_token;
 
