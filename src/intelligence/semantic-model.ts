@@ -29,10 +29,24 @@ export type ActualState = {
   confidence: "high" | "medium" | "low";
 };
 
+export type PossibilityMemory = {
+  id: string;
+  label: string;
+  statement: string;
+  type: Possibility["type"];
+  status: PossibilityStatus;
+  ordinal: number;
+  evidenceIds: string[];
+  assumptions: string[];
+  unknowns: string[];
+  source: "user" | "busiq" | "evidence";
+};
+
 export type SemanticModel = {
   intent: IntentState;
   possibilities: Possibility[];
   actual: ActualState[];
+  possibilityMemory: PossibilityMemory[];
 };
 
 function inferStage(request: string): IntentStage {
@@ -55,6 +69,7 @@ export function buildSemanticModel(
   evidence: EvidenceItem[],
   intentKind: string,
   reasoningTypes: ReasoningType[] = [],
+  priorPossibilities: PossibilityMemory[] = [],
 ): SemanticModel {
   const stage = inferStage(request);
   const hasVerified = evidence.some(item => item.verification === "verified" || item.kind === "verified" || item.kind === "retrieved");
@@ -85,6 +100,22 @@ export function buildSemanticModel(
       unknowns: ["Which candidate explanation is causally supported."],
     });
   }
+
+  const possibilityMemory: PossibilityMemory[] = [
+    ...priorPossibilities,
+    ...possibilities.map((possibility, index) => ({
+      id: possibility.id,
+      label: `Option ${index + 1}`,
+      statement: possibility.statement,
+      type: possibility.type,
+      status: possibility.status,
+      ordinal: index + 1,
+      evidenceIds: possibility.evidenceIds,
+      assumptions: possibility.assumptions,
+      unknowns: possibility.unknowns,
+      source: "busiq" as const,
+    })),
+  ];
 
   const actual: ActualState[] = evidence.map(item => ({
     id: item.id,
@@ -123,5 +154,6 @@ export function buildSemanticModel(
     },
     possibilities,
     actual,
+    possibilityMemory,
   };
 }
