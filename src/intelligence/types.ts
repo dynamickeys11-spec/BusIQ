@@ -26,6 +26,7 @@ export type IntelligencePipelineResult = {
   actionDecision?: import("./actions").ActionDecision;
   semanticModel?: import("./semantic-model").SemanticModel;
   worldModel?: import("./world-model").BusinessWorldModel;
+  digitalTwin?: import("./digital-twin").BusinessDigitalTwin;
   investigation?: import("./investigation").InvestigationPlan;
   request: string; status: PipelineStatus;
   intent: ReturnType<typeof import("../bie/intent").resolveIntent>;
