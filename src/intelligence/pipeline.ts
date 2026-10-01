@@ -1,4 +1,5 @@
 import { resolveIntent } from "../bie/intent.js";
+import type { ResolvedIntent } from "../bie/intent.js";
 import { detectAmbiguity } from "./ambiguity.js";
 import { describeCapabilities } from "./capabilities.js";
 import { buildResearchPlan } from "./research.js";
@@ -27,6 +28,7 @@ export type IntelligencePipelineOptions = {
   externalEvidence?: import("./types.js").EvidenceItem[];
   businessEvidence?: import("./types.js").EvidenceItem[];
   businessRecords?: import("../business-data/types.js").NormalizedRecord[];
+  intentOverride?: ResolvedIntent;
 };
 
 function finalizeResult(result: IntelligencePipelineResult, businessRecords: import("../business-data/types.js").NormalizedRecord[] = []): IntelligencePipelineResult {
@@ -50,7 +52,7 @@ function finalizeResult(result: IntelligencePipelineResult, businessRecords: imp
 
 export function runIntelligencePipeline(request: string, options: IntelligencePipelineOptions = {}): IntelligencePipelineResult {
   const normalized = request.trim().replace(/\s+/g, " ");
-  const intent = resolveIntent(normalized);
+  const intent = options.intentOverride ?? resolveIntent(normalized);
   const contextEntries = Array.isArray(options.context) ? options.context : options.context ? flattenContext(options.context) : [];
   const contextUsed = normalized ? selectRelevantContext(contextEntries, normalized, options.now) : [];
   const contextSummary = contextUsed.length ? ` ${contextUsed.length} usable persistent context item(s) informed planning; persistent context is not treated as verified evidence.` : "";
