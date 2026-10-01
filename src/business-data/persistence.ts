@@ -93,6 +93,21 @@ export function toPersistenceRow(
   }
 }
 
+async function resolveRelationId(
+  supabase: SupabaseClient,
+  businessId: string,
+  table: "business_customers" | "business_products",
+  value?: string,
+): Promise<string | null> {
+  if (!value?.trim()) return null;
+  if (isUuid(value)) return value;
+  const external = await supabase.from(table).select("id").eq("business_id", businessId).eq("external_id", value).limit(1).maybeSingle();
+  if (!external.error && external.data?.id) return String(external.data.id);
+  const name = await supabase.from(table).select("id").eq("business_id", businessId).eq("name", value).limit(1).maybeSingle();
+  if (!name.error && name.data?.id) return String(name.data.id);
+  return null;
+}
+
 export async function persistNormalizedImport(
   supabase: SupabaseClient,
   businessId: string,
@@ -104,7 +119,18 @@ export async function persistNormalizedImport(
   if (!records.length) return { importBatchId, domain, inserted: 0, records: [] };
 
   const table = tables[domain];
-  const rows = records.map((record) => toPersistenceRow(businessId, domain, record, importBatchId));
+  const rows = [] as Record<string, unknown>[];
+  for (const record of records) {
+    const row = toPersistenceRow(businessId, domain, record, importBatchId);
+    if (record.type === "sale") {
+      row.customer_id = await resolveRelationId(supabase, businessId, "business_customers", record.customerId);
+      row.product_id = await resolveRelationId(supabase, businessId, "business_products", record.productId);
+    }
+    if (record.type === "inventory") {
+      row.product_id = await resolveRelationId(supabase, businessId, "business_products", record.productId);
+    }
+    rows.push(row);
+  }
   const { data, error } = await supabase.from(table).insert(rows).select("id,external_id");
   if (error) throw new Error("Business import persistence failed: " + error.message);
 
