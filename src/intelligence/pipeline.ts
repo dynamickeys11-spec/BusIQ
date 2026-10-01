@@ -16,6 +16,7 @@ import { buildInvestigationPlan } from "./investigation.js";
 import { assessEvidence } from "./evidence-engine.js";
 import { diagnoseSales } from "./business-diagnostics.js";
 import { buildSemanticModel } from "./semantic-model.js";
+import { buildBusinessDigitalTwin } from "./digital-twin.js";
 import type { ContextState, ContextEntry } from "./context.js";
 import type { IntelligencePipelineResult } from "./types.js";
 
@@ -31,11 +32,14 @@ function finalizeResult(result: IntelligencePipelineResult, businessRecords: imp
   const evidenceAssessment = assessEvidence(result.evidence);
   const worldModel = buildBusinessWorldModel(businessRecords, result.evidence, result.contextUsed ?? []);
   const semanticModel = buildSemanticModel(result.request, result.evidence, result.intent.kind, result.reasoning.conclusions.map(conclusion => conclusion.type));
+  const investigation = buildInvestigationPlan(result.request, worldModel, result.evidence, semanticModel);
+  const digitalTwin = buildBusinessDigitalTwin(businessRecords, result.evidence, worldModel);
   return {
     ...result,
     semanticModel,
     worldModel,
-    investigation: buildInvestigationPlan(result.request, worldModel, result.evidence, semanticModel),
+    investigation,
+    digitalTwin,
     verification: { ...result.verification, diagnostics: [...(result.verification.diagnostics ?? []), ...evidenceAssessment.diagnostics], sufficiency: evidenceAssessment.sufficiency, completeness: evidenceAssessment.completeness, contradictions: evidenceAssessment.contradictions },
     answerQuality: validateAnswerQuality(result),
   };
