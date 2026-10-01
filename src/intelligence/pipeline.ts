@@ -22,6 +22,7 @@ export type IntelligencePipelineOptions = {
   now?: Date;
   externalEvidence?: import("./types.js").EvidenceItem[];
   businessEvidence?: import("./types.js").EvidenceItem[];
+  businessRecords?: import("../business-data/types.js").NormalizedRecord[];
 };
 
 function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelineResult {
@@ -30,7 +31,7 @@ function finalizeResult(result: IntelligencePipelineResult): IntelligencePipelin
     ...result,
     worldModel,
     investigation: buildInvestigationPlan(result.request, worldModel, result.evidence),
-    verification: { ...result.verification, diagnostics: [...(result.verification.diagnostics ?? []), ...assessEvidence(result.evidence).diagnostics], sufficiency: assessEvidence(result.evidence).sufficiency },
+    verification: { ...result.verification, diagnostics: [...(result.verification.diagnostics ?? []), ...evidenceAssessment.diagnostics], sufficiency: evidenceAssessment.sufficiency },
     answerQuality: validateAnswerQuality(result),
   };
 }
@@ -70,7 +71,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
       !(item.id === "business-data-retrieval" && options.businessEvidence?.length) &&
       !(["sales","customers","money","expenses","products","inventory","suppliers","people","operations","marketing","projects"].includes(item.id) && options.businessEvidence?.length),
   );
-  const actionBlocked = actionDecision?.state === "blocked" && actionDecision.action.availability === "unavailable";
+  const actionBlocked = actionDecision?.state === "blocked" && actionDecision.action.availability === "unavailable";\n  const externalEvidence = options.externalEvidence ?? [];\n  const businessEvidence = options.businessEvidence ?? [];\n  const businessRecords = options.businessRecords ?? [];
   const liveEvidenceMissing =
     (intent.needsExternalResearch && !(options.externalEvidence?.length)) ||
     (intent.needsBusinessData && !(options.businessEvidence?.length));
@@ -85,7 +86,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   };
 
   if (ambiguity.length) {
-    return finalizeResult({
+    return finish({
       ...base,
       status: "needs_clarification",
       execution: [],
@@ -105,7 +106,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   }
 
   if (unavailable.length || blockedRouting.length || actionBlocked || liveEvidenceMissing) {
-    return finalizeResult({
+    return finish({
       ...base,
       status: "needs_connection",
       execution: [],
