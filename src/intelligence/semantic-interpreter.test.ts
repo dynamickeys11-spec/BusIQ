@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { resolveIntent } from "../bie/intent.js";
 import type { ModelProvider, ModelRequest, ModelResponse, ProviderHealth } from "../providers/types.js";
 import { interpretRequest, mergeSemanticInterpretation } from "./semantic-interpreter.js";
@@ -26,7 +27,9 @@ class FakeProvider implements ModelProvider {
   }
 }
 
-const baseline = resolveIntent("I have no idea what business to start. I have ₦100,000.");
+describe("semantic interpreter", () => {
+  it("parses and merges a model semantic interpretation", async () => {
+    const baseline = resolveIntent("I have no idea what business to start. I have ₦100,000.");
 const interpretation = await interpretRequest(new FakeProvider(), "I have no idea what business to start. I have ₦100,000.", baseline);
 if (interpretation.kind !== "plan") throw new Error("Model semantic interpretation did not parse.");
 if (!interpretation.constraints.includes("with ₦100,000")) throw new Error("Constraint was not preserved.");
@@ -34,4 +37,7 @@ const merged = mergeSemanticInterpretation(baseline, interpretation);
 if (merged.kind !== "plan") throw new Error("Model intent was not merged.");
 if (!merged.requiredCapabilities.includes("planning")) throw new Error("Model capability was not merged.");
 
-console.log("semantic interpreter tests passed");
+
+
+  });
+});
