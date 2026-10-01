@@ -15,6 +15,7 @@ import { buildBusinessWorldModel } from "./world-model.js";
 import { buildInvestigationPlan } from "./investigation.js";
 import { assessEvidence } from "./evidence-engine.js";
 import { diagnoseSales } from "./business-diagnostics.js";
+import { buildSemanticModel } from "./semantic-model.js";
 import type { ContextState, ContextEntry } from "./context.js";
 import type { IntelligencePipelineResult } from "./types.js";
 
@@ -29,8 +30,10 @@ export type IntelligencePipelineOptions = {
 function finalizeResult(result: IntelligencePipelineResult, businessRecords: import("../business-data/types.js").NormalizedRecord[] = []): IntelligencePipelineResult {
   const evidenceAssessment = assessEvidence(result.evidence);
   const worldModel = buildBusinessWorldModel(businessRecords, result.evidence, result.contextUsed ?? []);
+  const semanticModel = buildSemanticModel(result.request, result.evidence, result.intent.kind, result.reasoning.conclusions.map(conclusion => conclusion.type));
   return {
     ...result,
+    semanticModel,
     worldModel,
     investigation: buildInvestigationPlan(result.request, worldModel, result.evidence),
     verification: { ...result.verification, diagnostics: [...(result.verification.diagnostics ?? []), ...evidenceAssessment.diagnostics], sufficiency: evidenceAssessment.sufficiency, completeness: evidenceAssessment.completeness, contradictions: evidenceAssessment.contradictions },
