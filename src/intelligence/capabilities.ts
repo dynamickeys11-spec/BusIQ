@@ -28,7 +28,7 @@ const registry: CapabilityDescriptor[] = [
   { id:"comparison", label:"Comparison", purpose:"Compare verified entities or options against explicit criteria.", suitableTools:["comparison-tool"], status:"unavailable" },
   { id:"evidence-review", label:"Evidence review", purpose:"Review, validate and reconcile evidence.", suitableTools:["evidence-review-tool"], status:"unavailable" },
   { id:"content-generation", label:"Content generation", purpose:"Generate requested business content from sufficient context and evidence.", suitableTools:["content-generation-tool"], status:"unavailable" },
-  { id:"explanation", label:"Explanation", purpose:"Explain a subject clearly without overstating evidence.", suitableTools:["explanation-tool"], status:"unavailable" },
+  { id:"explanation", label:"Explanation", purpose:"Explain a subject clearly without overstating evidence.", suitableTools:["explanation-tool"], status:"available" },
   { id:"monitoring", label:"Monitoring", purpose:"Track a condition and surface changes or alerts.", suitableTools:["monitoring-tool"], status:"unavailable" },
   { id:"external-research", label:"External research", purpose:"Retrieve current external evidence from configured sources.", suitableTools:["external-research-connector"], status:"unavailable" },
 ];
