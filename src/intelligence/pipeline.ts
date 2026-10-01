@@ -166,7 +166,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
   const reasoning = reasonFromEvidence(allEvidence, verification.state, normalized);
 
   if (executionBlocked.length) {
-    return finalizeResult({
+    return finish({
       ...base,
       status: "blocked",
       execution: [
@@ -195,7 +195,7 @@ export function runIntelligencePipeline(request: string, options: IntelligencePi
 
   const planResult = execution.find(result => result.toolId === "local-plan-builder");
   const plan = planResult?.state === "success" ? planResult.output : undefined;
-  return finalizeResult({
+  return finish({
     ...base,
     status: "ready",
     execution: [
