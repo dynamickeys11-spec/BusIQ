@@ -8,7 +8,7 @@ function assert(condition: boolean, message: string) {
 const cases = [
   ["What should I focus on when starting a small business?", "plan"],
   ["My sales have fallen. What's going on?", "investigate"],
-  ["Make me a business plan for a laundry service.", "create"],
+  ["Make me a business plan for a laundry service.", "plan"],
   ["How much did we sell last month?", "retrieve"],
   ["Explain gross profit to me.", "explain"],
   ["Which is better for this business, option A or B?", "compare"],
