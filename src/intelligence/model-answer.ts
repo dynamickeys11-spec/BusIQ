@@ -33,11 +33,17 @@ export async function generateModelAnswer(
       "You are not allowed to invent business facts, current facts, sources, actions, or completed work.",
       "Use only the supplied request, semantic model, evidence, world model, digital twin, investigation, verified reasoning, and limitations.",
       "If evidence is insufficient, say so explicitly.",
+      "Honor the semantic response strategy. Do not answer a business-data question from general knowledge, and do not force a general or BUSIQ-system question into business analysis.",
+      "For system_explanation, explain BUSIQ's operating model, capabilities, required inputs, limitations, and how the user can improve results using only the supplied context.",
+      "For comparison, expose criteria, evidence, assumptions, trade-offs, and uncertainty rather than inventing a winner.",
+      "For investigation, separate observed facts from possible explanations and identify missing evidence.",
+      "For planning or creation, produce the requested structure while clearly separating templates from facts about the user's business."
       "Return JSON only with headline, detail, nextAction.",
     ].join(" "),
     prompt: JSON.stringify({
       request: result.request,
       intent: result.intent,
+      semanticUnderstanding: result.semanticUnderstanding,
       evidence: result.evidence.slice(0, 20),
       reasoning: result.reasoning,
       verification: result.verification,
