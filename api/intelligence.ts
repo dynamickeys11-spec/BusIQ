@@ -72,6 +72,7 @@ export async function POST(request: ServerRequest): Promise<Response> {
     let resolvedIntent = resolveIntent(validation.request);
     let semanticInterpretationAttempted = false;
     let semanticInterpretationSucceeded = false;
+    let semanticInterpretation: import("../src/intelligence/semantic-interpreter.js").ModelSemanticInterpretation | undefined;
     let semanticUnderstandingMode: "model-primary" | "deterministic-fallback" = "deterministic-fallback";
     try {
       const { getConfiguredModelProvider } = await import("../src/learning/runtime.js");
@@ -79,6 +80,7 @@ export async function POST(request: ServerRequest): Promise<Response> {
       const provider = configuredProvider ?? new SupabaseEdgeModelProvider(authentication.supabase);
       semanticInterpretationAttempted = true;
       const interpretation = await interpretRequest(provider, validation.request, validation.context?.conversation ?? []);
+      semanticInterpretation = interpretation;
       resolvedIntent = semanticInterpretationToIntent(validation.request, interpretation);
       semanticInterpretationSucceeded = true;
       semanticUnderstandingMode = "model-primary";
@@ -143,6 +145,7 @@ export async function POST(request: ServerRequest): Promise<Response> {
         context: validation.context,
         externalEvidence,
         intentOverride: resolvedIntent,
+        semanticInterpretation,
       });
       let modelAttempted = false;
       let modelSucceeded = false;
