@@ -1,4 +1,5 @@
 import type { EvidenceItem, ReasoningType } from "./types.js";
+import type { BusinessStage } from "../bie/intent.js";
 
 export type IntentStage = "pre-business" | "existing-business" | "general";
 
