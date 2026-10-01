@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCapabilityExecutionGraph } from "./execution-graph.js";
+import { applyExecutionNodeResults, buildCapabilityExecutionGraph } from "./execution-graph.js";
 
 const interpretation = {
   meaning: "Create a business plan",
@@ -40,4 +40,17 @@ describe("capability execution graph", () => {
     expect(graph.nodes.find(n => n.capabilityId === "business-data-retrieval")?.status).toBe("blocked");
     expect(graph.nodes.find(n => n.capabilityId === "business-analysis")?.status).toBe("blocked");
   });
+});
+
+
+it("propagates a failed node to downstream dependencies", () => {
+  const graph = buildCapabilityExecutionGraph(interpretation, emptyContext);
+  const updated = applyExecutionNodeResults(graph, [{
+    nodeId: "business-context",
+    state: "blocked",
+    evidenceIds: [],
+    reason: "Context executor failed",
+  }]);
+  expect(updated.nodes.find(n => n.capabilityId === "planning")?.status).toBe("blocked");
+  expect(updated.terminalState).toBe("blocked");
 });
