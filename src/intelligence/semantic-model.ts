@@ -49,19 +49,21 @@ export type SemanticModel = {
   possibilityMemory: PossibilityMemory[];
 };
 
-function inferStage(request: string): IntentStage {
-  const preBusiness = /\b(start|build|launch|create)\b.*\b(business|company|venture)\b|\b(no|don't have|do not have)\b.*\b(business|idea)\b|\bwhat business should i\b/i;
-  if (preBusiness.test(request)) return "pre-business";
-  if (/\b(my|our|current|existing)\b.*\b(business|company|sales|customers|inventory|profit|revenue)\b/i.test(request)) return "existing-business";
+function inferStageFromIntent(intentKind: string): IntentStage {
+  if (intentKind === "investigate" || intentKind === "monitor") return "existing-business";
   return "general";
 }
 
-function desiredOutcome(request: string, stage: IntentStage): string {
-  if (stage === "pre-business") return "Identify and validate a business opportunity that fits the user's stated constraints.";
-  if (/\bwhy\b|\binvestigat/i.test(request)) return "Understand what changed and determine which explanations are supported by evidence.";
-  if (/\bcompare|versus|vs\\.?\b/i.test(request)) return "Compare alternatives using relevant evidence and assumptions.";
-  if (/\bplan|roadmap|strategy/i.test(request)) return "Produce a structured plan grounded in the available context and explicit assumptions.";
-  return "Fulfil the user's requested business or informational outcome.";
+function desiredOutcomeFromIntent(intentKind: string): string {
+  switch (intentKind) {
+    case "investigate": return "Understand what is happening and determine which explanations are supported by evidence.";
+    case "compare": return "Compare relevant alternatives using explicit criteria and available evidence.";
+    case "plan": return "Produce a structured plan grounded in available context and explicit assumptions.";
+    case "create": return "Produce the requested artifact without inventing unsupported facts.";
+    case "retrieve": return "Retrieve the requested information from available evidence.";
+    case "explain": return "Explain the requested subject clearly and accurately.";
+    default: return "Fulfil the user's requested outcome.";
+  }
 }
 
 export function buildSemanticModel(
@@ -70,8 +72,11 @@ export function buildSemanticModel(
   intentKind: string,
   reasoningTypes: ReasoningType[] = [],
   priorPossibilities: PossibilityMemory[] = [],
+  semanticContext?: { businessStage: BusinessStage; desiredOutcome: string },
 ): SemanticModel {
-  const stage = inferStage(request);
+  const stage = semanticContext?.businessStage === "pre-business" || semanticContext?.businessStage === "existing-business"
+    ? semanticContext.businessStage
+    : inferStageFromIntent(intentKind);
   const hasVerified = evidence.some(item => item.verification === "verified" || item.kind === "verified" || item.kind === "retrieved");
   const hasUserEvidence = evidence.some(item => item.kind === "user");
   const uncertainty: IntentState["uncertainty"] =
@@ -148,7 +153,7 @@ export function buildSemanticModel(
   return {
     intent: {
       stage,
-      desiredOutcome: desiredOutcome(request, stage),
+      desiredOutcome: semanticContext?.desiredOutcome ?? desiredOutcomeFromIntent(intentKind),
       uncertainty,
       scope: stage === "existing-business" ? "business" : stage === "pre-business" ? "personal" : "general",
     },
