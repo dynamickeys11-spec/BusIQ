@@ -66,7 +66,7 @@ export function buildInvestigationPlan(
   worldModel: BusinessWorldModel,
   evidence: EvidenceItem[],
 ): InvestigationPlan {
-  const hypotheses = candidateHypotheses(question).map((statement, index) => ({
+  const hypotheses: InvestigationHypothesis[] = candidateHypotheses(question).map((statement, index) => ({
     id: `hypothesis-${index + 1}`,
     statement,
     status: "unverified" as const,
