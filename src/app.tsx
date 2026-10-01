@@ -205,6 +205,7 @@ export default function App() {
           createContextEntry("conversation", "last-request", result.request, { source: "BUSIQ conversation" }),
           createContextEntry("conversation", "last-intent", result.intent.kind, { source: "BUSIQ semantic interpretation" }),
           createContextEntry("conversation", "last-outcome", result.semanticUnderstanding?.desiredOutcome ?? result.answer.headline, { source: "BUSIQ semantic interpretation" }),
+          createContextEntry("conversation", "last-response", result.answer.detail, { source: "BUSIQ response memory" }),
           ...(result.semanticUnderstanding?.domains ?? []).map((domain) => createContextEntry("conversation", "domain:" + domain, domain, { source: "BUSIQ semantic interpretation" })),
         ]),
       }));
