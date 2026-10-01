@@ -53,6 +53,7 @@ function finalizeResult(result: IntelligencePipelineResult, businessRecords: imp
     result.intent.kind,
     result.reasoning.conclusions.map(conclusion => conclusion.type),
     priorPossibilities,
+    semanticInterpretation ? { businessStage: semanticInterpretation.businessStage, desiredOutcome: semanticInterpretation.desiredOutcome } : undefined,
   );
   const investigation = buildInvestigationPlan(result.request, worldModel, result.evidence, semanticModel);
   const digitalTwin = buildBusinessDigitalTwin(businessRecords, result.evidence, worldModel);
